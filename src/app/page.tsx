@@ -51,23 +51,42 @@ function formatDate(dateStr: string) {
 // ── 이미지 URL 입력 컴포넌트 ──────────────────────────────────────
 function ImageUrlInput({ value, onChange }: { value: string; onChange: (url: string) => void }) {
   const [input, setInput] = useState(value);
-  const [status, setStatus] = useState<"idle"|"loading"|"ok"|"error">("idle");
+  const [status, setStatus] = useState<"idle"|"loading"|"ok"|"warn"|"error">("idle");
 
-  useEffect(() => { setInput(value); }, [value]);
-
-  function handleChange(url: string) {
-    setInput(url);
-    if (!url.trim()) { onChange(""); setStatus("idle"); return; }
-    setStatus("loading");
-  }
+  useEffect(() => {
+    setInput(value);
+    if (value) setStatus("ok");
+    else setStatus("idle");
+  }, [value]);
 
   function handleBlur() {
     const url = input.trim();
     if (!url) { onChange(""); setStatus("idle"); return; }
-    // 이미지 유효성 확인
+
+    // URL 형식 체크
+    try { new URL(url); } catch { onChange(""); setStatus("error"); return; }
+
+    setStatus("loading");
     const img = new Image();
-    img.onload  = () => { onChange(url); setStatus("ok"); };
-    img.onerror = () => { onChange(""); setStatus("error"); };
+    img.crossOrigin = "anonymous";
+
+    const timeout = setTimeout(() => {
+      // 3초 내 응답 없으면 — CORS 가능성, 일단 저장하고 warn
+      onChange(url);
+      setStatus("warn");
+    }, 3000);
+
+    img.onload = () => {
+      clearTimeout(timeout);
+      onChange(url);
+      setStatus("ok");
+    };
+    img.onerror = () => {
+      clearTimeout(timeout);
+      // onerror도 CORS로 발생할 수 있어서 일단 저장
+      onChange(url);
+      setStatus("warn");
+    };
     img.src = url;
   }
 
@@ -76,26 +95,42 @@ function ImageUrlInput({ value, onChange }: { value: string; onChange: (url: str
       <div style={{ position:"relative" }}>
         <input
           value={input}
-          onChange={e => handleChange(e.target.value)}
+          onChange={e => setInput(e.target.value)}
           onBlur={handleBlur}
-          placeholder="이미지 주소(URL)를 붙여넣으세요"
-          style={{ width:"100%", padding:"12px 40px 12px 16px", borderRadius:12, border:`1.5px solid ${status==="error"?"#FF6B6B":status==="ok"?"#4ECDC4":"#EFEFEF"}`, fontSize:13, outline:"none", fontFamily:"inherit", background:"#FAFAFA", boxSizing:"border-box", color:"#111" }}
+          placeholder="포스터 이미지 주소(URL)를 붙여넣으세요"
+          style={{
+            width:"100%", padding:"12px 40px 12px 16px", borderRadius:12,
+            border:`1.5px solid ${status==="error"?"#FF6B6B":status==="ok"?"#4ECDC4":"#EFEFEF"}`,
+            fontSize:13, outline:"none", fontFamily:"inherit",
+            background:"#FAFAFA", boxSizing:"border-box", color:"#111"
+          }}
         />
         <span style={{ position:"absolute", right:12, top:"50%", transform:"translateY(-50%)", fontSize:16 }}>
-          {status==="loading" ? "⏳" : status==="ok" ? "✅" : status==="error" ? "❌" : "🔗"}
+          {status==="loading"?"⏳":status==="ok"?"✅":status==="warn"?"⚠️":status==="error"?"❌":"🔗"}
         </span>
       </div>
-      {status==="error" && <p style={{ fontSize:11, color:"#FF6B6B", margin:"4px 0 0" }}>이미지를 불러올 수 없어요. URL을 확인해주세요.</p>}
-      {status==="ok" && value && (
+
+      {status === "error" && (
+        <p style={{ fontSize:11, color:"#FF6B6B", margin:"4px 0 0" }}>올바른 이미지 URL이 아니에요.</p>
+      )}
+      {status === "warn" && (
+        <p style={{ fontSize:11, color:"#FFB347", margin:"4px 0 0" }}>저장됐어요. 일부 사이트는 미리보기가 안 될 수 있어요.</p>
+      )}
+
+      {/* 미리보기 — ok일 때만 */}
+      {status === "ok" && value && (
         <div style={{ marginTop:10, position:"relative", display:"inline-block" }}>
-          <img src={value} style={{ height:80, borderRadius:10, objectFit:"cover", boxShadow:"0 2px 8px rgba(0,0,0,0.12)" }} />
+          <img
+            src={value}
+            style={{ height:90, maxWidth:200, borderRadius:10, objectFit:"cover", boxShadow:"0 2px 8px rgba(0,0,0,0.12)", display:"block" }}
+            onError={e => { (e.target as HTMLImageElement).style.display="none"; setStatus("warn"); }}
+          />
           <button onClick={() => { onChange(""); setInput(""); setStatus("idle"); }}
-            style={{ position:"absolute", top:-6, right:-6, width:20, height:20, borderRadius:"50%", background:"#FF6B6B", border:"none", color:"#fff", fontSize:12, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", lineHeight:1 }}>✕</button>
+            style={{ position:"absolute", top:-6, right:-6, width:20, height:20, borderRadius:"50%", background:"#FF6B6B", border:"2px solid #fff", color:"#fff", fontSize:10, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }}>
+            ✕
+          </button>
         </div>
       )}
-      <p style={{ fontSize:11, color:"#CCC", margin:"6px 0 0", lineHeight:1.5 }}>
-        구글 이미지에서 "이미지 주소 복사" 후 붙여넣으세요
-      </p>
     </div>
   );
 }
@@ -226,7 +261,7 @@ export default function Home() {
             HOME
         ══════════════════════════════════ */}
         {view === "home" && (
-          <div style={{ flex:1, overflowY:"auto", paddingBottom:70 }}>
+          <div style={{ flex:1, overflowY:"auto", paddingBottom:110 }}>
             {/* 헤더 */}
             <div style={{ padding:"56px 20px 14px", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
               <h1 style={{ fontSize:22, fontWeight:800, color:"#111", margin:0 }}>나의 문화 기록</h1>
@@ -388,6 +423,27 @@ export default function Home() {
                 style={{ width:"100%", padding:"12px 16px", borderRadius:12, border:"1.5px solid #EFEFEF", fontSize:14, outline:"none", fontFamily:"inherit", marginBottom:18, background:"#FAFAFA", boxSizing:"border-box" }}
               />
 
+              {/* 장소 — 책 제외 전 카테고리 */}
+              {form.category && form.category !== "book" && (
+                <>
+                  <p style={{ fontSize:11, fontWeight:700, color:"#AAA", letterSpacing:"0.8px", margin:"0 0 8px", textTransform:"uppercase" }}>
+                    장소 <span style={{ color:"#CCC", textTransform:"none", fontWeight:400 }}>(선택)</span>
+                  </p>
+                  <input
+                    value={form.venue}
+                    onChange={e => setForm(f => ({ ...f, venue: e.target.value }))}
+                    placeholder={
+                      form.category === "movie"      ? "예) CGV 강남, 메가박스 코엑스" :
+                      form.category === "exhibition" ? "예) 국립현대미술관, 예술의전당" :
+                      form.category === "musical"    ? "예) 블루스퀘어 신한카드홀" :
+                      form.category === "concert"    ? "예) 올림픽공원 KSPO돔" :
+                      "어디서 봤나요?"
+                    }
+                    style={{ width:"100%", padding:"12px 16px", borderRadius:12, border:"1.5px solid #EFEFEF", fontSize:14, outline:"none", fontFamily:"inherit", marginBottom:18, background:"#FAFAFA", boxSizing:"border-box" }}
+                  />
+                </>
+              )}
+
               {/* 별점 */}
               <p style={{ fontSize:11, fontWeight:700, color:"#AAA", letterSpacing:"0.8px", margin:"0 0 8px", textTransform:"uppercase" }}>별점</p>
               <div style={{ marginBottom:20 }}>
@@ -404,14 +460,22 @@ export default function Home() {
               />
               <p style={{ textAlign:"right", fontSize:11, color:"#CCC", margin:"4px 0 20px" }}>{form.review.length}/100</p>
 
-              {/* 이미지 URL */}
-              <p style={{ fontSize:11, fontWeight:700, color:"#AAA", letterSpacing:"0.8px", margin:"0 0 8px", textTransform:"uppercase" }}>
-                이미지 <span style={{ color:"#CCC", textTransform:"none", fontWeight:400 }}>(선택 · 이미지 주소 붙여넣기)</span>
-              </p>
-              <ImageUrlInput
-                value={form.thumbnail}
-                onChange={url => setForm(f => ({ ...f, thumbnail: url }))}
-              />
+              {/* 이미지 URL — 책/영화는 API 썸네일 자동, 나머지만 표시 */}
+              {form.category && !["book","movie"].includes(form.category) && (
+                <>
+                  <p style={{ fontSize:11, fontWeight:700, color:"#AAA", letterSpacing:"0.8px", margin:"0 0 8px", textTransform:"uppercase" }}>
+                    이미지 <span style={{ color:"#CCC", textTransform:"none", fontWeight:400 }}>(선택)</span>
+                  </p>
+                  <ImageUrlInput
+                    value={form.thumbnail}
+                    onChange={url => setForm(f => ({ ...f, thumbnail: url }))}
+                  />
+                  <p style={{ fontSize:11, color:"#CCC", margin:"6px 0 0", lineHeight:1.6 }}>
+                    💡 나무위키·공식사이트 포스터 이미지에서<br/>
+                    우클릭 → "이미지 주소 복사" 후 붙여넣으세요
+                  </p>
+                </>
+              )}
             </div>
 
             {/* 저장 버튼 — 맨 아래 고정 */}
@@ -430,7 +494,7 @@ export default function Home() {
         {view === "detail" && selected && (() => {
           const cat = catOf(selected.category);
           return (
-            <div style={{ flex:1, overflowY:"auto", paddingBottom:70 }}>
+            <div style={{ flex:1, overflowY:"auto", paddingBottom:110 }}>
               <div style={{ display:"flex", justifyContent:"space-between", padding:"52px 16px 10px" }}>
                 <button onClick={() => setView("home")} style={{ background:"none", border:"none", fontSize:22, cursor:"pointer", color:"#555", padding:0 }}>‹</button>
                 <button style={{ background:"none", border:"none", fontSize:20, cursor:"pointer", color:"#CCC" }}>⋮</button>
@@ -446,20 +510,40 @@ export default function Home() {
                     <span style={{ width:8, height:8, borderRadius:"50%", background:cat.color, display:"inline-block" }} />
                     <span style={{ fontSize:12, color:cat.color, fontWeight:700 }}>{cat.label}</span>
                   </div>
-                  <h2 style={{ fontSize:20, fontWeight:800, color:"#111", margin:"0 0 6px", lineHeight:1.3, wordBreak:"keep-all" }}>{selected.title}</h2>
-                  {selected.author && <p style={{ fontSize:13, color:"#777", margin:"0 0 4px" }}>{selected.author}</p>}
-                  {selected.venue && <p style={{ fontSize:12, color:"#AAA", margin:"0 0 4px" }}>📍 {selected.venue}</p>}
-                  <p style={{ fontSize:12, color:"#CCC", margin:0 }}>{formatDate(selected.date)}</p>
+                  <h2 style={{ fontSize:20, fontWeight:800, color:"#111", margin:"0 0 8px", lineHeight:1.3, wordBreak:"keep-all" }}>{selected.title}</h2>
+                  {selected.author && (
+                    <div style={{ display:"flex", alignItems:"center", gap:5, marginBottom:4 }}>
+                      <span style={{ fontSize:12, color:"#BBB" }}>👤</span>
+                      <span style={{ fontSize:13, color:"#666" }}>{selected.author}</span>
+                    </div>
+                  )}
+                  {selected.venue && (
+                    <div style={{ display:"flex", alignItems:"center", gap:5, marginBottom:4 }}>
+                      <span style={{ fontSize:12, color:"#BBB" }}>📍</span>
+                      <span style={{ fontSize:13, color:"#666" }}>{selected.venue}</span>
+                    </div>
+                  )}
+                  <div style={{ display:"flex", alignItems:"center", gap:5 }}>
+                    <span style={{ fontSize:12, color:"#BBB" }}>📅</span>
+                    <span style={{ fontSize:12, color:"#AAA" }}>{formatDate(selected.date)}</span>
+                  </div>
                 </div>
               </div>
 
               {/* 별점 + 리뷰 */}
               <div style={{ margin:"0 16px 16px", background:"#FAFAFA", borderRadius:16, padding:"16px 18px" }}>
-                <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:selected.review?14:0 }}>
-                  <Stars v={selected.rating} size={22} />
-                  <span style={{ fontSize:18, fontWeight:800, color:"#111" }}>{selected.rating}.0</span>
+                {/* 별점 */}
+                <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:selected.review ? 14 : 0 }}>
+                  <Stars v={Number(selected.rating)} size={24} />
+                  <span style={{ fontSize:20, fontWeight:800, color:"#111" }}>{Number(selected.rating).toFixed(1)}</span>
                 </div>
-                {selected.review && <p style={{ fontSize:14, color:"#555", lineHeight:1.7, margin:0, paddingTop:12, borderTop:"1px solid #EEE" }}>"{selected.review}"</p>}
+                {/* 리뷰 */}
+                {selected.review && (
+                  <div style={{ paddingTop:12, borderTop:"1px solid #EEE" }}>
+                    <p style={{ fontSize:11, fontWeight:700, color:"#CCC", margin:"0 0 6px", letterSpacing:0.5 }}>한 줄 리뷰</p>
+                    <p style={{ fontSize:14, color:"#444", lineHeight:1.8, margin:0 }}>"{selected.review}"</p>
+                  </div>
+                )}
               </div>
 
               {/* 수정 / 삭제 */}
@@ -475,7 +559,7 @@ export default function Home() {
             CATEGORY
         ══════════════════════════════════ */}
         {view === "category" && (
-          <div style={{ flex:1, overflowY:"auto", paddingBottom:70 }}>
+          <div style={{ flex:1, overflowY:"auto", paddingBottom:110 }}>
             <div style={{ display:"flex", alignItems:"center", padding:"52px 16px 12px", borderBottom:"1px solid #F5F5F7", gap:12 }}>
               <button onClick={() => setView("home")} style={{ background:"none", border:"none", fontSize:22, cursor:"pointer", color:"#555", padding:0 }}>‹</button>
               <p style={{ flex:1, fontSize:17, fontWeight:700, textAlign:"center", margin:0 }}>카테고리</p>
@@ -529,7 +613,7 @@ export default function Home() {
             MORE (더보기)
         ══════════════════════════════════ */}
         {(view as string) === "more" && (
-          <div style={{ flex:1, overflowY:"auto", paddingBottom:90 }}>
+          <div style={{ flex:1, overflowY:"auto", paddingBottom:110 }}>
             <div style={{ padding:"52px 20px 20px" }}>
               <h2 style={{ fontSize:22, fontWeight:800, color:"#111", margin:0 }}>더보기</h2>
             </div>
@@ -593,7 +677,7 @@ export default function Home() {
             CALENDAR
         ══════════════════════════════════ */}
         {view === "calendar" && (
-          <div style={{ flex:1, overflowY:"auto", paddingBottom:70 }}>
+          <div style={{ flex:1, overflowY:"auto", paddingBottom:110 }}>
             <div style={{ padding:"52px 20px 10px", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
               <h2 style={{ fontSize:20, fontWeight:800, color:"#111", margin:0 }}>캘린더</h2>
               <button style={{ background:"none", border:"none", cursor:"pointer", fontSize:18, color:"#CCC" }}>📅</button>
