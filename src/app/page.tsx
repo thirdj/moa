@@ -142,12 +142,12 @@ function getFirstDay(y: number, m: number) { return new Date(y, m, 1).getDay(); 
 function useAutocomplete(query: string, category: string, enabled: boolean) {
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [loading, setLoading] = useState(false);
-  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const timer = useRef<ReturnType<typeof setTimeout>>();
 
   useEffect(() => {
     const cat = catOf(category);
     if (!query.trim() || !enabled) { setSuggestions([]); return; }
-    clearTimeout(timer.current ?? undefined);
+    clearTimeout(timer.current);
     timer.current = setTimeout(async () => {
       setLoading(true);
       try {
@@ -291,7 +291,7 @@ export default function Home() {
                 const cat = catOf(rec.category);
                 return (
                   <div key={rec.id} onClick={() => { setSelected(rec); setView("detail"); }}
-                    style={{ display:"flex", alignItems:"center", gap:12, background:"#fff", borderRadius:16, padding:"12px 14px", cursor:"pointer", boxShadow:"0 1px 8px rgba(0,0,0,0.07)", border:"1px solid #F5F5F7", transition:"transform 0.15s" }}
+                    style={{ display:"flex", alignItems:"center", gap:12, background:"#fff", borderRadius:16, padding:"12px 14px", cursor:"pointer", boxShadow:"0 1px 8px rgba(0,0,0,0.07)", border:"1px solid #F5F5F7", transition:"transform 0.15s", overflow:"hidden" }}
                     onMouseEnter={e => (e.currentTarget.style.transform="translateY(-1px)")}
                     onMouseLeave={e => (e.currentTarget.style.transform="")}>
                     {/* 썸네일 */}
@@ -299,7 +299,7 @@ export default function Home() {
                       ? <img src={rec.thumbnail} style={{ width:56, height:72, objectFit:"cover", borderRadius:10, flexShrink:0, boxShadow:"0 2px 8px rgba(0,0,0,0.12)" }} />
                       : <div style={{ width:56, height:72, borderRadius:10, background:`${cat.color}18`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:26, flexShrink:0 }}>{cat.emoji}</div>
                     }
-                    <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ flex:1, minWidth:0, overflow:"hidden" }}>
                       {/* 카테고리 뱃지 */}
                       <div style={{ display:"flex", alignItems:"center", gap:4, marginBottom:4 }}>
                         <span style={{ width:8, height:8, borderRadius:"50%", background:cat.color, display:"inline-block", flexShrink:0 }} />
@@ -310,10 +310,10 @@ export default function Home() {
                       {/* 별점 + 날짜 */}
                       <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
                         <div style={{ display:"flex", alignItems:"center", gap:5 }}>
-                          <Stars v={rec.rating} size={13} />
-                          <span style={{ fontSize:11, color:"#999", fontWeight:600 }}>{rec.rating}.0</span>
+                          <Stars v={Number(rec.rating)} size={13} />
+                          <span style={{ fontSize:11, color:"#999", fontWeight:600 }}>{Number(rec.rating).toFixed(1)}</span>
                         </div>
-                        <span style={{ fontSize:11, color:"#CCC" }}>{formatDate(rec.date)}</span>
+                        <span style={{ fontSize:11, color:"#CCC", flexShrink:0 }}>{formatDate(rec.date)}</span>
                       </div>
                       {/* 리뷰 한줄 */}
                       {rec.review && (
@@ -368,9 +368,10 @@ export default function Home() {
                 {acLoading && <div style={{ position:"absolute", right:14, top:"50%", transform:"translateY(-50%)", width:14, height:14, border:"2px solid #E0D4FF", borderTopColor:"#7B61FF", borderRadius:"50%", animation:"spin 0.6s linear infinite" }} />}
               </div>
 
-              {/* Suggestions dropdown */}
+              {/* Suggestions dropdown — position absolute로 레이아웃 밀지 않게 */}
+              <div style={{ position:"relative" }}>
               {showSug && suggestions.length > 0 && (
-                <div style={{ background:"#fff", borderRadius:14, boxShadow:"0 8px 28px rgba(0,0,0,0.12)", border:"1px solid #F0F0F0", marginBottom:14, maxHeight:240, overflowY:"auto" }}>
+                <div style={{ position:"absolute", top:0, left:0, right:0, background:"#fff", borderRadius:14, boxShadow:"0 8px 28px rgba(0,0,0,0.15)", border:"1px solid #F0F0F0", maxHeight:240, overflowY:"auto", zIndex:50 }}>
                   {suggestions.filter(s=>s.source==="history").length > 0 && <>
                     <div style={{ padding:"8px 14px 2px", fontSize:10, color:"#7B61FF", fontWeight:700, letterSpacing:1 }}>내 기록</div>
                     {suggestions.filter(s=>s.source==="history").map(s => (
@@ -404,6 +405,7 @@ export default function Home() {
                   </>}
                 </div>
               )}
+              </div>
 
               {/* 선택 프리뷰 */}
               {form.thumbnail && !showSug && (
@@ -495,9 +497,12 @@ export default function Home() {
           const cat = catOf(selected.category);
           return (
             <div style={{ flex:1, overflowY:"auto", paddingBottom:110 }}>
-              <div style={{ display:"flex", justifyContent:"space-between", padding:"52px 16px 10px" }}>
-                <button onClick={() => setView("home")} style={{ background:"none", border:"none", fontSize:22, cursor:"pointer", color:"#555", padding:0 }}>‹</button>
-                <button style={{ background:"none", border:"none", fontSize:20, cursor:"pointer", color:"#CCC" }}>⋮</button>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"52px 16px 10px" }}>
+                <button onClick={() => setView("home")} style={{ display:"flex", alignItems:"center", gap:4, background:"none", border:"none", cursor:"pointer", color:"#555", padding:"8px 10px 8px 4px", fontFamily:"inherit" }}>
+                  <span style={{ fontSize:26, lineHeight:1 }}>‹</span>
+                  <span style={{ fontSize:15, fontWeight:600 }}>뒤로</span>
+                </button>
+                <button style={{ background:"none", border:"none", fontSize:20, cursor:"pointer", color:"#CCC", padding:"8px" }}>⋮</button>
               </div>
               {/* Hero */}
               <div style={{ display:"flex", gap:16, padding:"0 20px 20px", alignItems:"flex-start" }}>
@@ -739,7 +744,7 @@ export default function Home() {
             홈 | 캘린더 | [+] | 카테고리 | 더보기
         ══════════════════════════════════ */}
         {view !== "add" && (
-          <div style={{ position:"fixed", bottom:0, left:"50%", transform:"translateX(-50%)", width:"100%", maxWidth:390, display:"flex", alignItems:"center", background:"#fff", borderTop:"1px solid #F0F0F0", padding:"8px 0 20px", zIndex:20 }}>
+          <div style={{ position:"fixed", bottom:0, left:"50%", transform:"translateX(-50%)", width:"100%", maxWidth:390, display:"flex", alignItems:"center", background:"#fff", borderTop:"1px solid #F0F0F0", padding:"6px 0 12px", zIndex:20 }}>
 
             {/* 홈 */}
             <button onClick={() => setView("home")}
