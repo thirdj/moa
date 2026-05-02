@@ -142,12 +142,12 @@ function getFirstDay(y: number, m: number) { return new Date(y, m, 1).getDay(); 
 function useAutocomplete(query: string, category: string, enabled: boolean) {
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [loading, setLoading] = useState(false);
-  const timer = useRef<ReturnType<typeof setTimeout>>();
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   useEffect(() => {
     const cat = catOf(category);
     if (!query.trim() || !enabled) { setSuggestions([]); return; }
-    clearTimeout(timer.current);
+    if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(async () => {
       setLoading(true);
       try {
