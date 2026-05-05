@@ -351,7 +351,7 @@ export default function Home() {
         {view==="add" && (
           <div style={{ flex:1, overflowY:"auto", paddingBottom:140 }}>
             <div style={{ display:"flex", alignItems:"center", padding:"52px 20px 16px", borderBottom:`1px solid ${F.border}`, gap:12 }}>
-              <button onClick={() => { reset(); setView(editId ? "detail" : "home"); }}
+              <button onClick={() => { const wasEdit = !!editId; reset(); setView(wasEdit ? "detail" : "home"); }}
                 style={{ width:36, height:36, borderRadius:10, background:F.white, border:`1px solid ${F.border}`, fontSize:18, cursor:"pointer", color:F.textSub, display:"flex", alignItems:"center", justifyContent:"center", boxShadow:F.shadow }}>✕</button>
               <p style={{ flex:1, fontSize:17, fontWeight:700, textAlign:"center", margin:0, color:F.text }}>{editId ? "기록 수정" : "기록 추가"}</p>
               <div style={{ width:36 }} />
