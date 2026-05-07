@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 interface CultureRecord {
   id: number; category: string; title: string; date: string;
   rating: number; review?: string; thumbnail?: string; author?: string; venue?: string;
-  date_start?: string; date_end?: string;
+  date_start?: string; date_end?: string; finished?: boolean;
 }
 interface Suggestion {
   id: string | number; source: "history" | "api"; type?: "title" | "author" | "venue";
@@ -155,7 +155,7 @@ function useAutocomplete(query: string, category: string, enabled: boolean) {
 }
 
 // ── Main ───────────────────────────────────────────────────────────
-const makeEmpty = () => ({ category:"", title:"", date:todayStr(), rating:0, review:"", thumbnail:"", author:"", venue:"", date_start:"", date_end:"" });
+const makeEmpty = () => ({ category:"", title:"", date:todayStr(), rating:0, review:"", thumbnail:"", author:"", venue:"", date_start:"", date_end:"", finished:false });
 
 export default function Home() {
   const { data:session, status } = useSession();
@@ -215,7 +215,7 @@ export default function Home() {
   }
 
   function openEdit(r: CultureRecord) {
-    setForm({ category:r.category, title:r.title, date:r.date.slice(0,10), rating:r.rating, review:r.review??"", thumbnail:r.thumbnail??"", author:r.author??"", venue:r.venue??"", date_start:r.date_start?.slice(0,10)??"", date_end:r.date_end?.slice(0,10)??"" });
+    setForm({ category:r.category, title:r.title, date:r.date.slice(0,10), rating:r.rating, review:r.review??"", thumbnail:r.thumbnail??"", author:r.author??"", venue:r.venue??"", date_start:r.date_start?.slice(0,10)??"", date_end:r.date_end?.slice(0,10)??"", finished:r.finished??false });
     setTitleQuery(r.title); setEditId(r.id); setView("add");
   }
 
@@ -445,33 +445,53 @@ export default function Home() {
                 </div>
               )}
 
-              {/* 책 — 읽기 시작/완료 날짜 */}
+              {/* 책 — 읽기 시작/완독 */}
               {form.category==="book" ? (
                 <>
-                  <p style={sectionLabel}>읽기 기간</p>
-                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:18 }}>
+                  <p style={sectionLabel}>읽기 기간 <span style={{ color:F.textMut, textTransform:"none", fontWeight:400 }}>(선택)</span></p>
+                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:14 }}>
                     <div>
                       <p style={{ fontSize:11, color:F.textMut, margin:"0 0 6px" }}>시작일</p>
-                      <input type="date" value={form.date_start} max={form.date_end || todayStr()}
-                        onChange={e => setForm(f => ({...f, date_start:e.target.value, date:e.target.value||f.date}))}
-                        style={{ ...flatInput, fontSize:14 }}
+                      <input
+                        value={form.date_start}
+                        onChange={e => setForm(f => ({ ...f, date_start:e.target.value.replace(/[^0-9-]/g,""), date:e.target.value||f.date }))}
+                        placeholder="2024-01-01"
+                        maxLength={10}
+                        style={{ ...flatInput }}
                       />
                     </div>
                     <div>
-                      <p style={{ fontSize:11, color:F.textMut, margin:"0 0 6px" }}>완료일 <span style={{ color:F.textMut, fontSize:10 }}>(선택)</span></p>
-                      <input type="date" value={form.date_end} min={form.date_start||undefined} max={todayStr()}
-                        onChange={e => setForm(f => ({...f, date_end:e.target.value, date:e.target.value||f.date}))}
-                        style={{ ...flatInput, fontSize:14 }}
+                      <p style={{ fontSize:11, color:F.textMut, margin:"0 0 6px" }}>완료일</p>
+                      <input
+                        value={form.date_end}
+                        onChange={e => setForm(f => ({ ...f, date_end:e.target.value.replace(/[^0-9-]/g,""), date:e.target.value||f.date }))}
+                        placeholder="2024-01-31"
+                        maxLength={10}
+                        disabled={!(form as any).finished}
+                        style={{ ...flatInput, opacity:(form as any).finished?1:0.35, transition:"opacity 0.2s" }}
                       />
                     </div>
                   </div>
+                  {/* 완독 체크 */}
+                  <div
+                    onClick={() => setForm(f => ({ ...f, finished:!(f as any).finished, date_end:(f as any).finished?"":f.date_end }))}
+                    style={{ display:"flex", alignItems:"center", gap:10, padding:"13px 16px", background:F.white, borderRadius:14, border:`1.5px solid ${(form as any).finished ? F.accent : F.border}`, cursor:"pointer", marginBottom:18, transition:"all 0.15s", boxShadow:F.shadow }}>
+                    <div style={{ width:22, height:22, borderRadius:6, border:`2px solid ${(form as any).finished ? F.accent : F.textMut}`, background:(form as any).finished ? F.accent : "transparent", display:"flex", alignItems:"center", justifyContent:"center", transition:"all 0.15s", flexShrink:0 }}>
+                      {(form as any).finished && <span style={{ color:"#fff", fontSize:13, lineHeight:1, fontWeight:700 }}>✓</span>}
+                    </div>
+                    <span style={{ fontSize:14, fontWeight:600, color:(form as any).finished ? F.accent : F.text }}>완독했어요 📖</span>
+                    {(form as any).finished && <span style={{ marginLeft:"auto", fontSize:11, color:F.textMut }}>완료일을 입력하세요</span>}
+                  </div>
                 </>
               ) : (
-                /* 책 외 — 일반 날짜 */
+                /* 책 외 — 텍스트 날짜 입력 */
                 <>
                   <p style={{ ...sectionLabel, marginTop:4 }}>날짜</p>
-                  <input type="date" value={form.date} max={todayStr()}
-                    onChange={e => setForm(f => ({...f, date:e.target.value}))}
+                  <input
+                    value={form.date}
+                    onChange={e => setForm(f => ({ ...f, date:e.target.value.replace(/[^0-9-]/g,"") }))}
+                    placeholder="2024-01-01"
+                    maxLength={10}
                     style={{ ...flatInput, marginBottom:18 }}
                   />
                 </>
@@ -565,14 +585,24 @@ export default function Home() {
 
                     {selected.author && <div style={{ display:"flex", alignItems:"center", gap:5, marginBottom:5 }}><span style={{ fontSize:12, color:F.textMut }}>👤</span><span style={{ fontSize:13, color:F.textSub }}>{selected.author}</span></div>}
                     {selected.venue  && <div style={{ display:"flex", alignItems:"center", gap:5, marginBottom:5 }}><span style={{ fontSize:12, color:F.textMut }}>📍</span><span style={{ fontSize:13, color:F.textSub }}>{selected.venue}</span></div>}
-                    {selected.category==="book" && (selected.date_start || selected.date_end) ? (
-                      <div style={{ display:"flex", alignItems:"center", gap:5 }}>
-                        <span style={{ fontSize:12, color:F.textMut }}>📖</span>
-                        <span style={{ fontSize:12, color:F.textMut }}>
-                          {selected.date_start ? formatDate(selected.date_start) : "?"}
-                          {" → "}
-                          {selected.date_end ? formatDate(selected.date_end) : "읽는 중"}
-                        </span>
+                    {selected.category==="book" ? (
+                      <div style={{ display:"flex", flexDirection:"column", gap:4 }}>
+                        {selected.date_start && (
+                          <div style={{ display:"flex", alignItems:"center", gap:5 }}>
+                            <span style={{ fontSize:12, color:F.textMut }}>📖</span>
+                            <span style={{ fontSize:12, color:F.textMut }}>
+                              {formatDate(selected.date_start)}
+                              {" → "}
+                              {selected.finished && selected.date_end ? formatDate(selected.date_end) : selected.finished ? "완독" : "읽는 중"}
+                            </span>
+                          </div>
+                        )}
+                        {selected.finished && (
+                          <div style={{ display:"inline-flex", alignItems:"center", gap:4, background:`${F.accent}12`, padding:"3px 8px", borderRadius:20, marginTop:2, width:"fit-content" }}>
+                            <span style={{ fontSize:11 }}>✓</span>
+                            <span style={{ fontSize:11, color:F.accent, fontWeight:700 }}>완독</span>
+                          </div>
+                        )}
                       </div>
                     ) : (
                       <div style={{ display:"flex", alignItems:"center", gap:5 }}><span style={{ fontSize:12, color:F.textMut }}>📅</span><span style={{ fontSize:12, color:F.textMut }}>{formatDate(selected.date)}</span></div>
