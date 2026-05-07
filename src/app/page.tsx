@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 interface CultureRecord {
   id: number; category: string; title: string; date: string;
   rating: number; review?: string; thumbnail?: string; author?: string; venue?: string;
+  date_start?: string; date_end?: string;
 }
 interface Suggestion {
   id: string | number; source: "history" | "api"; type?: "title" | "author" | "venue";
@@ -154,7 +155,7 @@ function useAutocomplete(query: string, category: string, enabled: boolean) {
 }
 
 // ── Main ───────────────────────────────────────────────────────────
-const makeEmpty = () => ({ category:"", title:"", date:todayStr(), rating:0, review:"", thumbnail:"", author:"", venue:"" });
+const makeEmpty = () => ({ category:"", title:"", date:todayStr(), rating:0, review:"", thumbnail:"", author:"", venue:"", date_start:"", date_end:"" });
 
 export default function Home() {
   const { data:session, status } = useSession();
@@ -214,7 +215,7 @@ export default function Home() {
   }
 
   function openEdit(r: CultureRecord) {
-    setForm({ category:r.category, title:r.title, date:r.date.slice(0,10), rating:r.rating, review:r.review??"", thumbnail:r.thumbnail??"", author:r.author??"", venue:r.venue??"" });
+    setForm({ category:r.category, title:r.title, date:r.date.slice(0,10), rating:r.rating, review:r.review??"", thumbnail:r.thumbnail??"", author:r.author??"", venue:r.venue??"", date_start:r.date_start?.slice(0,10)??"", date_end:r.date_end?.slice(0,10)??"" });
     setTitleQuery(r.title); setEditId(r.id); setView("add");
   }
 
@@ -255,8 +256,8 @@ export default function Home() {
   function BackBtn() {
     return (
       <button onClick={() => setView(prevView)}
-        style={{ display:"flex", alignItems:"center", gap:4, background:"none", border:"none", cursor:"pointer", fontFamily:"inherit", color:F.textSub, fontWeight:600, fontSize:15, padding:"8px 4px" }}>
-        <span style={{ fontSize:24, lineHeight:1, color:F.accent }}>‹</span>
+        style={{ display:"flex", alignItems:"center", gap:4, background:F.accent, border:"none", borderRadius:10, padding:"7px 14px 7px 10px", cursor:"pointer", fontFamily:"inherit", color:"#fff", fontWeight:700, fontSize:14, boxShadow:"0 2px 8px rgba(123,97,255,0.3)" }}>
+        <span style={{ fontSize:20, lineHeight:1 }}>‹</span>
         <span>뒤로</span>
       </button>
     );
@@ -279,7 +280,7 @@ export default function Home() {
         {/* ══ HOME ══════════════════════════════════════════════════ */}
         {view==="home" && (
           <div style={screenWrap}>
-            <div style={{ padding:"52px 20px 14px", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+            <div style={{ padding:"28px 20px 12px", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
               <div>
                 <p style={{ fontSize:11, color:F.textMut, letterSpacing:2, margin:"0 0 4px" }}>MY CULTURE LOG</p>
                 <h1 style={{ fontSize:22, fontWeight:800, color:F.text, margin:0 }}>나의 문화 기록</h1>
@@ -350,20 +351,24 @@ export default function Home() {
         {/* ══ ADD / EDIT ════════════════════════════════════════════ */}
         {view==="add" && (
           <div style={{ flex:1, overflowY:"auto", paddingBottom:140 }}>
-            <div style={{ display:"flex", alignItems:"center", padding:"52px 20px 16px", borderBottom:`1px solid ${F.border}`, gap:12 }}>
+            {/* 헤더 — 여백 줄임 */}
+            <div style={{ display:"flex", alignItems:"center", padding:"16px 20px 14px", borderBottom:`1px solid ${F.border}`, gap:12 }}>
               <button onClick={() => { const wasEdit = !!editId; reset(); setView(wasEdit ? "detail" : "home"); }}
-                style={{ width:36, height:36, borderRadius:10, background:F.white, border:`1px solid ${F.border}`, fontSize:18, cursor:"pointer", color:F.textSub, display:"flex", alignItems:"center", justifyContent:"center", boxShadow:F.shadow }}>✕</button>
+                style={{ display:"flex", alignItems:"center", gap:4, background:F.accent, border:"none", borderRadius:10, padding:"7px 12px", cursor:"pointer", color:"#fff", fontWeight:700, fontSize:14, fontFamily:"inherit" }}>
+                <span style={{ fontSize:20, lineHeight:1 }}>‹</span>
+                <span>뒤로</span>
+              </button>
               <p style={{ flex:1, fontSize:17, fontWeight:700, textAlign:"center", margin:0, color:F.text }}>{editId ? "기록 수정" : "기록 추가"}</p>
-              <div style={{ width:36 }} />
+              <div style={{ width:60 }} />
             </div>
 
-            <div style={{ padding:"20px" }}>
+            <div style={{ padding:"16px 20px" }}>
               {/* 카테고리 */}
               <p style={sectionLabel}>카테고리 선택</p>
-              <div style={{ display:"grid", gridTemplateColumns:"repeat(5,1fr)", gap:8, marginBottom:24 }}>
+              <div style={{ display:"grid", gridTemplateColumns:"repeat(5,1fr)", gap:8, marginBottom:20 }}>
                 {CATS.map(c => (
                   <button key={c.id} onClick={() => { setForm(f => ({...f, category:c.id, thumbnail:"", author:""})); setTitleQuery(""); clear(); }}
-                    style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:6, padding:"12px 4px", borderRadius:16, border:`2px solid ${form.category===c.id ? c.color : F.border}`, background:form.category===c.id ? `${c.color}12` : F.white, cursor:"pointer", fontFamily:"inherit", transition:"all 0.15s", boxShadow:form.category===c.id?"none":F.shadow }}>
+                    style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:6, padding:"10px 4px", borderRadius:16, border:`2px solid ${form.category===c.id ? c.color : F.border}`, background:form.category===c.id ? `${c.color}12` : F.white, cursor:"pointer", fontFamily:"inherit", transition:"all 0.15s", boxShadow:form.category===c.id?"none":F.shadow }}>
                     <span style={{ fontSize:22 }}>{c.emoji}</span>
                     <span style={{ fontSize:10, fontWeight:600, color:form.category===c.id ? c.color : F.textMut, textAlign:"center", lineHeight:1.3 }}>{c.label}</span>
                   </button>
@@ -430,7 +435,7 @@ export default function Home() {
 
               {/* 선택 프리뷰 */}
               {form.thumbnail && !showSug && (
-                <div style={{ display:"flex", alignItems:"center", gap:12, padding:"10px 14px", background:`${F.accent}08`, borderRadius:14, marginBottom:16, border:`1.5px solid ${F.accent}25` }}>
+                <div style={{ display:"flex", alignItems:"center", gap:12, padding:"10px 14px", background:`${F.accent}08`, borderRadius:14, marginBottom:14, border:`1.5px solid ${F.accent}25` }}>
                   <img src={form.thumbnail} style={{ width:34, height:48, objectFit:"cover", borderRadius:8 }} />
                   <div style={{ flex:1, minWidth:0 }}>
                     <p style={{ fontSize:13, fontWeight:700, margin:"0 0 2px", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", color:F.text }}>{form.title}</p>
@@ -440,12 +445,37 @@ export default function Home() {
                 </div>
               )}
 
-              {/* 날짜 */}
-              <p style={{ ...sectionLabel, marginTop:4 }}>날짜</p>
-              <input type="date" value={form.date} max={todayStr()}
-                onChange={e => setForm(f => ({...f, date:e.target.value}))}
-                style={{ ...flatInput, marginBottom:18 }}
-              />
+              {/* 책 — 읽기 시작/완료 날짜 */}
+              {form.category==="book" ? (
+                <>
+                  <p style={sectionLabel}>읽기 기간</p>
+                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:18 }}>
+                    <div>
+                      <p style={{ fontSize:11, color:F.textMut, margin:"0 0 6px" }}>시작일</p>
+                      <input type="date" value={form.date_start} max={form.date_end || todayStr()}
+                        onChange={e => setForm(f => ({...f, date_start:e.target.value, date:e.target.value||f.date}))}
+                        style={{ ...flatInput, fontSize:14 }}
+                      />
+                    </div>
+                    <div>
+                      <p style={{ fontSize:11, color:F.textMut, margin:"0 0 6px" }}>완료일 <span style={{ color:F.textMut, fontSize:10 }}>(선택)</span></p>
+                      <input type="date" value={form.date_end} min={form.date_start||undefined} max={todayStr()}
+                        onChange={e => setForm(f => ({...f, date_end:e.target.value, date:e.target.value||f.date}))}
+                        style={{ ...flatInput, fontSize:14 }}
+                      />
+                    </div>
+                  </div>
+                </>
+              ) : (
+                /* 책 외 — 일반 날짜 */
+                <>
+                  <p style={{ ...sectionLabel, marginTop:4 }}>날짜</p>
+                  <input type="date" value={form.date} max={todayStr()}
+                    onChange={e => setForm(f => ({...f, date:e.target.value}))}
+                    style={{ ...flatInput, marginBottom:18 }}
+                  />
+                </>
+              )}
 
               {/* 장소 — 책 제외 */}
               {form.category && form.category!=="book" && (
@@ -465,7 +495,7 @@ export default function Home() {
 
               {/* 별점 */}
               <p style={sectionLabel}>별점</p>
-              <div style={{ marginBottom:20 }}>
+              <div style={{ marginBottom:18 }}>
                 <Stars v={form.rating} onChange={v => setForm(f => ({...f, rating:v}))} size={34} />
               </div>
 
@@ -474,7 +504,7 @@ export default function Home() {
               <textarea value={form.review} onChange={e => setForm(f => ({...f, review:e.target.value.slice(0,100)}))}
                 placeholder="한 줄로 느낀 점을 남겨보세요." maxLength={100} rows={3}
                 style={{ ...flatInput, resize:"none", lineHeight:1.7, marginBottom:4 }} />
-              <p style={{ textAlign:"right", fontSize:11, color:F.textMut, margin:"0 0 20px" }}>{form.review.length}/100</p>
+              <p style={{ textAlign:"right", fontSize:11, color:F.textMut, margin:"0 0 18px" }}>{form.review.length}/100</p>
 
               {/* 이미지 URL — 전시/공연/콘서트만 */}
               {form.category && !["book","movie"].includes(form.category) && (
@@ -486,9 +516,9 @@ export default function Home() {
             </div>
 
             {/* 저장 버튼 */}
-            <div style={{ position:"fixed", bottom:0, left:"50%", transform:"translateX(-50%)", width:"100%", maxWidth:390, padding:"12px 20px 28px", background:F.bg, borderTop:`1px solid ${F.border}`, zIndex:20 }}>
+            <div style={{ position:"fixed", bottom:0, left:"50%", transform:"translateX(-50%)", width:"100%", maxWidth:390, padding:"10px 20px 24px", background:F.bg, borderTop:`1px solid ${F.border}`, zIndex:20 }}>
               <button onClick={save} disabled={!canSave||saving}
-                style={{ width:"100%", padding:"16px", borderRadius:16, border:"none", background:canSave?F.accent:"#E5E5F0", color:canSave?"#fff":F.textMut, fontSize:16, fontWeight:700, cursor:canSave?"pointer":"default", fontFamily:"inherit", boxShadow:canSave?"0 4px 16px rgba(123,97,255,0.35)":"none", transition:"all 0.2s" }}>
+                style={{ width:"100%", padding:"15px", borderRadius:16, border:"none", background:canSave?F.accent:"#E5E5F0", color:canSave?"#fff":F.textMut, fontSize:16, fontWeight:700, cursor:canSave?"pointer":"default", fontFamily:"inherit", boxShadow:canSave?"0 4px 16px rgba(123,97,255,0.35)":"none", transition:"all 0.2s" }}>
                 {saving ? "저장 중..." : "저장하기"}
               </button>
             </div>
@@ -500,7 +530,7 @@ export default function Home() {
           const cat = catOf(selected.category);
           return (
             <div style={screenWrap}>
-              <div style={{ padding:"52px 20px 16px" }}>
+              <div style={{ padding:"16px 20px 14px" }}>
                 <BackBtn />
               </div>
 
@@ -535,7 +565,18 @@ export default function Home() {
 
                     {selected.author && <div style={{ display:"flex", alignItems:"center", gap:5, marginBottom:5 }}><span style={{ fontSize:12, color:F.textMut }}>👤</span><span style={{ fontSize:13, color:F.textSub }}>{selected.author}</span></div>}
                     {selected.venue  && <div style={{ display:"flex", alignItems:"center", gap:5, marginBottom:5 }}><span style={{ fontSize:12, color:F.textMut }}>📍</span><span style={{ fontSize:13, color:F.textSub }}>{selected.venue}</span></div>}
-                    <div style={{ display:"flex", alignItems:"center", gap:5 }}><span style={{ fontSize:12, color:F.textMut }}>📅</span><span style={{ fontSize:12, color:F.textMut }}>{formatDate(selected.date)}</span></div>
+                    {selected.category==="book" && (selected.date_start || selected.date_end) ? (
+                      <div style={{ display:"flex", alignItems:"center", gap:5 }}>
+                        <span style={{ fontSize:12, color:F.textMut }}>📖</span>
+                        <span style={{ fontSize:12, color:F.textMut }}>
+                          {selected.date_start ? formatDate(selected.date_start) : "?"}
+                          {" → "}
+                          {selected.date_end ? formatDate(selected.date_end) : "읽는 중"}
+                        </span>
+                      </div>
+                    ) : (
+                      <div style={{ display:"flex", alignItems:"center", gap:5 }}><span style={{ fontSize:12, color:F.textMut }}>📅</span><span style={{ fontSize:12, color:F.textMut }}>{formatDate(selected.date)}</span></div>
+                    )}
                   </div>
                 </div>
               </Card>
@@ -566,9 +607,11 @@ export default function Home() {
         {/* ══ CATEGORY ══════════════════════════════════════════════ */}
         {view==="category" && (
           <div style={screenWrap}>
-            <div style={{ display:"flex", alignItems:"center", padding:"52px 20px 14px", gap:12, borderBottom:`1px solid ${F.border}` }}>
-              <button onClick={() => setView("home")} style={{ background:"none", border:"none", cursor:"pointer", fontFamily:"inherit", color:F.textSub, fontWeight:600, fontSize:15, padding:"8px 4px", display:"flex", alignItems:"center", gap:4 }}>
-                <span style={{ fontSize:24, lineHeight:1, color:F.accent }}>‹</span><span>뒤로</span>
+            <div style={{ display:"flex", alignItems:"center", padding:"16px 20px 14px", gap:12, borderBottom:`1px solid ${F.border}` }}>
+              <button onClick={() => setView("home")}
+                style={{ display:"flex", alignItems:"center", gap:4, background:F.accent, border:"none", borderRadius:10, padding:"7px 14px 7px 10px", cursor:"pointer", fontFamily:"inherit", color:"#fff", fontWeight:700, fontSize:14, boxShadow:"0 2px 8px rgba(123,97,255,0.3)" }}>
+                <span style={{ fontSize:20, lineHeight:1 }}>‹</span>
+                <span>뒤로</span>
               </button>
               <p style={{ flex:1, fontSize:17, fontWeight:700, textAlign:"center", margin:0, color:F.text }}>카테고리</p>
               <div style={{ width:60 }} />
