@@ -423,7 +423,7 @@ export default function Home() {
         {/* ══ HOME ══════════════════════════════════════════════════ */}
         {view==="home" && (
           <div style={screenWrap}>
-            <div style={{ padding:"28px 20px 12px", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+            <div style={{ padding:"20px 20px 10px", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
               <div>
                 <p style={{ fontSize:11, color:F.textMut, letterSpacing:2, margin:"0 0 4px" }}>MY CULTURE LOG</p>
                 <h1 style={{ fontSize:22, fontWeight:800, color:F.text, margin:0 }}>나의 문화 기록</h1>
@@ -509,14 +509,24 @@ export default function Home() {
               {/* 카테고리 */}
               <p style={sectionLabel}>카테고리 선택</p>
               <div style={{ display:"grid", gridTemplateColumns:"repeat(5,1fr)", gap:8, marginBottom:20 }}>
-                {CATS.map(c => (
-                  <button key={c.id} onClick={() => { setForm(f => ({...f, category:c.id, thumbnail:"", author:""})); setTitleQuery(""); clear(); }}
-                    style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:6, padding:"10px 4px", borderRadius:16, border:`2px solid ${form.category===c.id ? c.color : F.border}`, background:form.category===c.id ? `${c.color}12` : F.white, cursor:"pointer", fontFamily:"inherit", transition:"all 0.15s", boxShadow:form.category===c.id?"none":F.shadow }}>
-                    <span style={{ fontSize:22 }}>{c.emoji}</span>
-                    <span style={{ fontSize:10, fontWeight:600, color:form.category===c.id ? c.color : F.textMut, textAlign:"center", lineHeight:1.3 }}>{c.label}</span>
-                  </button>
-                ))}
+                {CATS.map(c => {
+                  const isSelected = form.category === c.id;
+                  const isDisabled = !!editId && !isSelected; // 수정 중엔 현재 카테고리만 활성
+                  return (
+                    <button key={c.id}
+                      onClick={() => { if(isDisabled) return; setForm(f => ({...f, category:c.id, thumbnail:"", author:""})); setTitleQuery(""); clear(); }}
+                      style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:6, padding:"10px 4px", borderRadius:16, border:`2px solid ${isSelected ? c.color : F.border}`, background:isSelected ? `${c.color}12` : F.white, cursor:isDisabled?"default":"pointer", fontFamily:"inherit", transition:"all 0.15s", boxShadow:isSelected?"none":F.shadow, opacity:isDisabled?0.35:1 }}>
+                      <span style={{ fontSize:22 }}>{c.emoji}</span>
+                      <span style={{ fontSize:10, fontWeight:600, color:isSelected ? c.color : F.textMut, textAlign:"center", lineHeight:1.3 }}>{c.label}</span>
+                    </button>
+                  );
+                })}
               </div>
+              {editId && (
+                <p style={{ fontSize:11, color:F.textMut, margin:"-14px 0 16px", display:"flex", alignItems:"center", gap:4 }}>
+                  <span>🔒</span> 수정 시 카테고리는 변경할 수 없어요
+                </p>
+              )}
 
               {/* 제목 */}
               <p style={sectionLabel}>
@@ -588,28 +598,9 @@ export default function Home() {
                 </div>
               )}
 
-              {/* 책 — 읽기 시작/완독 */}
+              {/* 책 — 읽기 시작일만 입력 */}
               {form.category==="book" ? (
                 <>
-                  {/* 완독 체크 — 먼저 표시 */}
-                  <div
-                    onClick={() => {
-                      const nowFinished = !(form as any).finished;
-                      setForm(f => ({
-                        ...f,
-                        finished: nowFinished,
-                        date_end: nowFinished ? todayStr() : "", // 완독 체크 시 오늘 자동
-                        date: nowFinished ? todayStr() : f.date,
-                      }));
-                    }}
-                    style={{ display:"flex", alignItems:"center", gap:10, padding:"13px 16px", background:F.white, borderRadius:14, border:`1.5px solid ${(form as any).finished ? F.accent : F.border}`, cursor:"pointer", marginBottom:16, transition:"all 0.15s", boxShadow:F.shadow }}>
-                    <div style={{ width:22, height:22, borderRadius:6, border:`2px solid ${(form as any).finished ? F.accent : F.textMut}`, background:(form as any).finished ? F.accent : "transparent", display:"flex", alignItems:"center", justifyContent:"center", transition:"all 0.15s", flexShrink:0 }}>
-                      {(form as any).finished && <span style={{ color:"#fff", fontSize:13, lineHeight:1, fontWeight:700 }}>✓</span>}
-                    </div>
-                    <span style={{ fontSize:14, fontWeight:600, color:(form as any).finished ? F.accent : F.text }}>완독했어요 📖</span>
-                  </div>
-
-                  {/* 읽기 기간 — 시작일만 입력 (완료일은 상세에서 표시) */}
                   <p style={sectionLabel}>읽기 시작일 <span style={{ color:F.textMut, textTransform:"none", fontWeight:400 }}>(선택)</span></p>
                   <div style={{ marginBottom:18 }}>
                     <DatePicker
@@ -760,6 +751,30 @@ export default function Home() {
                 </div>
               </Card>
 
+              {/* 완독했어요 버튼 — 책이고 아직 완독 안 한 경우만 */}
+              {selected.category==="book" && !selected.finished && (
+                <div style={{ margin:"0 16px 16px" }}>
+                  <button
+                    onClick={async () => {
+                      const today = todayStr();
+                      const updated = { ...selected, finished:true, date_end:today };
+                      await fetch(`/api/records/${selected.id}`, {
+                        method:"PUT",
+                        headers:{"Content-Type":"application/json"},
+                        body:JSON.stringify({ finished:true, date_end:today }),
+                      });
+                      setSelected(updated);
+                      await fetchRecords();
+                    }}
+                    style={{ width:"100%", padding:"14px", borderRadius:14, border:`2px solid ${F.accent}`, background:`${F.accent}08`, color:F.accent, fontWeight:700, fontSize:15, cursor:"pointer", fontFamily:"inherit", display:"flex", alignItems:"center", justifyContent:"center", gap:8, transition:"all 0.2s" }}
+                    onMouseEnter={e => { e.currentTarget.style.background=F.accent; e.currentTarget.style.color="#fff"; }}
+                    onMouseLeave={e => { e.currentTarget.style.background=`${F.accent}08`; e.currentTarget.style.color=F.accent; }}>
+                    <span>📖</span>
+                    <span>완독했어요!</span>
+                  </button>
+                </div>
+              )}
+
               {/* 별점 + 리뷰 */}
               <Card style={{ margin:"0 16px 16px" }}>
                 <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:selected.review?14:0 }}>
@@ -836,7 +851,7 @@ export default function Home() {
         {/* ══ CALENDAR ══════════════════════════════════════════════ */}
         {view==="calendar" && (
           <div style={screenWrap}>
-            <div style={{ padding:"52px 20px 10px", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+            <div style={{ padding:"20px 20px 10px", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
               <h2 style={{ fontSize:20, fontWeight:800, color:F.text, margin:0 }}>캘린더</h2>
             </div>
             <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"0 20px 16px" }}>
@@ -897,7 +912,7 @@ export default function Home() {
         {/* ══ MORE ══════════════════════════════════════════════════ */}
         {view==="more" && (
           <div style={screenWrap}>
-            <div style={{ padding:"52px 20px 20px" }}>
+            <div style={{ padding:"20px 20px 16px" }}>
               <h2 style={{ fontSize:22, fontWeight:800, color:F.text, margin:0 }}>더보기</h2>
             </div>
             {session?.user && (
@@ -957,10 +972,9 @@ export default function Home() {
           <div style={{ position:"fixed", bottom:0, left:"50%", transform:"translateX(-50%)", width:"100%", maxWidth:390, display:"flex", alignItems:"center", background:F.white, borderTop:`1px solid ${F.border}`, padding:"6px 0 18px", zIndex:20 }}>
             {[{id:"home",label:"홈",emoji:"🏠"},{id:"calendar",label:"캘린더",emoji:"📅"}].map(n => (
               <button key={n.id} onClick={() => navigateTo(n.id as any)}
-                style={{ flex:1, border:"none", background:"none", cursor:"pointer", display:"flex", flexDirection:"column", alignItems:"center", gap:3, fontFamily:"inherit", padding:"4px 0" }}>
-                <span style={{ fontSize:22 }}>{n.emoji}</span>
-                <span style={{ fontSize:10, color:view===n.id?F.accent:F.textMut, fontWeight:view===n.id?700:400 }}>{n.label}</span>
-                {view===n.id && <div style={{ width:4, height:4, borderRadius:"50%", background:F.accent }} />}
+                style={{ flex:1, border:"none", background:"none", cursor:"pointer", display:"flex", flexDirection:"column", alignItems:"center", gap:3, fontFamily:"inherit", padding:"6px 0" }}>
+                <span style={{ fontSize:22, filter: view===n.id ? `drop-shadow(0 0 4px ${F.accent}80)` : "none", transition:"filter 0.2s" }}>{n.emoji}</span>
+                <span style={{ fontSize:10, color:view===n.id?F.accent:F.textMut, fontWeight:view===n.id?700:400, transition:"color 0.2s" }}>{n.label}</span>
               </button>
             ))}
             {/* FAB */}
@@ -974,10 +988,9 @@ export default function Home() {
             </div>
             {[{id:"category",label:"카테고리",emoji:"🗂️"},{id:"more",label:"더보기",emoji:"···"}].map(n => (
               <button key={n.id} onClick={() => navigateTo(n.id as any)}
-                style={{ flex:1, border:"none", background:"none", cursor:"pointer", display:"flex", flexDirection:"column", alignItems:"center", gap:3, fontFamily:"inherit", padding:"4px 0" }}>
-                <span style={{ fontSize:22 }}>{n.emoji}</span>
-                <span style={{ fontSize:10, color:view===n.id?F.accent:F.textMut, fontWeight:view===n.id?700:400 }}>{n.label}</span>
-                {view===n.id && <div style={{ width:4, height:4, borderRadius:"50%", background:F.accent }} />}
+                style={{ flex:1, border:"none", background:"none", cursor:"pointer", display:"flex", flexDirection:"column", alignItems:"center", gap:3, fontFamily:"inherit", padding:"6px 0" }}>
+                <span style={{ fontSize:22, filter: view===n.id ? `drop-shadow(0 0 4px ${F.accent}80)` : "none", transition:"filter 0.2s" }}>{n.emoji}</span>
+                <span style={{ fontSize:10, color:view===n.id?F.accent:F.textMut, fontWeight:view===n.id?700:400, transition:"color 0.2s" }}>{n.label}</span>
               </button>
             ))}
           </div>
