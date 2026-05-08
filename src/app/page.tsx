@@ -276,7 +276,7 @@ export default function Home() {
   const [showSug, setShowSug] = useState(false);
   const [calYear, setCalYear] = useState(new Date().getFullYear());
   const [calMonth, setCalMonth] = useState(new Date().getMonth());
-  const [calSelected, setCalSelected] = useState<string|null>(null);
+  const [calSelected, setCalSelected] = useState<string>(todayStr());
 
   const { suggestions, loading:acLoading, clear } = useAutocomplete(titleQuery, form.category, showSug && !!form.category);
 
@@ -376,7 +376,7 @@ export default function Home() {
   const firstDay = getFirstDay(calYear, calMonth);
   const calDateStr = (d: number) => `${calYear}-${String(calMonth+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
   const recordsOnDay = (d: number) => records.filter(r => r.date?.slice(0,10)===calDateStr(d));
-  const selectedDayRecords = calSelected ? records.filter(r => r.date?.slice(0,10)===calSelected) : [];
+  const selectedDayRecords = records.filter(r => r.date?.slice(0,10)===calSelected);
 
   if (status==="loading") return (
     <div style={{ minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center", background:F.bg, color:F.textMut }}>로딩 중...</div>
@@ -855,7 +855,7 @@ export default function Home() {
                 const day=i+1; const ds=calDateStr(day); const recs=recordsOnDay(day);
                 const isSel=calSelected===ds; const isToday=ds===todayStr();
                 return (
-                  <div key={day} onClick={() => setCalSelected(isSel?null:ds)} style={{ display:"flex", flexDirection:"column", alignItems:"center", padding:"3px 0", cursor:"pointer" }}>
+                  <div key={day} onClick={() => setCalSelected(ds)} style={{ display:"flex", flexDirection:"column", alignItems:"center", padding:"3px 0", cursor:"pointer" }}>
                     <div style={{ width:32, height:32, borderRadius:"50%", display:"flex", alignItems:"center", justifyContent:"center", background:isSel?F.accent:isToday?`${F.accent}15`:"transparent", color:isSel?"#fff":isToday?F.accent:F.text, fontSize:13, fontWeight:isToday||isSel?700:400, border:isToday&&!isSel?`1.5px solid ${F.accent}40`:"none" }}>{day}</div>
                     <div style={{ display:"flex", gap:2, marginTop:2 }}>
                       {recs.slice(0,3).map((r,idx) => <div key={idx} style={{ width:4, height:4, borderRadius:"50%", background:catOf(r.category).color }} />)}
@@ -868,7 +868,7 @@ export default function Home() {
               <div style={{ margin:"16px 16px 0" }}>
                 <p style={{ fontSize:13, fontWeight:700, color:F.text, margin:"0 0 10px" }}>{calSelected.replace(/-/g,".")}</p>
                 {selectedDayRecords.length===0
-                  ? <p style={{ fontSize:13, color:F.textMut, textAlign:"center", padding:"20px 0" }}>이 날의 기록이 없어요</p>
+                  ? <p style={{ fontSize:13, color:F.textMut, textAlign:"center", padding:"16px 0" }}>이 날의 기록이 없어요</p>
                   : selectedDayRecords.map(rec => {
                     const cat = catOf(rec.category);
                     return (
