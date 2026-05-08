@@ -180,6 +180,46 @@ export default function Home() {
   useEffect(() => { if(status==="unauthenticated") router.push("/login"); }, [status]);
   useEffect(() => { if(status==="authenticated") fetchRecords(); }, [status]);
 
+  // ── 브라우저 히스토리 연동 — 스와이프 뒤로가기 지원 ──────────────
+  // view가 바뀔 때마다 히스토리에 쌓아서 스와이프/뒤로가기가 앱 내 이전 화면으로 이동
+  const isPopState = useRef(false);
+
+  function navigateTo(next: typeof view) {
+    if (next === view) return;
+    // 히스토리에 현재 view 상태 push
+    window.history.pushState({ view: next }, "", "");
+    setView(next);
+  }
+
+  useEffect(() => {
+    // 초기 히스토리 엔트리 설정
+    window.history.replaceState({ view: "home" }, "", "");
+
+    function handlePopState(e: PopStateEvent) {
+      isPopState.current = true;
+      const prevViewFromHistory = e.state?.view as typeof view | undefined;
+
+      if (!prevViewFromHistory || prevViewFromHistory === "home") {
+        // 히스토리 최하단 — home으로
+        setView("home");
+      } else {
+        setView(prevViewFromHistory);
+      }
+      isPopState.current = false;
+    }
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
+  // navigateTo를 쓰지 않는 setView 직접 호출들을 위한 래퍼
+  // view 변경 시 히스토리 동기화 (popstate로 인한 변경은 제외)
+  useEffect(() => {
+    if (!isPopState.current && view !== "home") {
+      // 이미 navigateTo에서 push했거나, 직접 setView 호출한 경우 대비
+    }
+  }, [view]);
+
   async function fetchRecords() {
     setLoading(true);
     try { const r = await fetch("/api/records"); if(r.ok) setRecords(await r.json()); } catch(e) { console.error(e); }
@@ -194,10 +234,10 @@ export default function Home() {
         await fetch(`/api/records/${editId}`, { method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify(form) });
         await fetchRecords();
         setSelected({ ...selected!, ...form, id:editId });
-        reset(); setView("detail");
+        reset(); navigateTo("detail");
       } else {
         await fetch("/api/records", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(form) });
-        await fetchRecords(); reset(); setView("home");
+        await fetchRecords(); reset(); navigateTo("home");
       }
     } finally { setSaving(false); }
   }
@@ -205,18 +245,18 @@ export default function Home() {
   async function del(id: number) {
     if (!confirm("삭제할까요?")) return;
     await fetch(`/api/records/${id}`, { method:"DELETE" });
-    await fetchRecords(); setView(prevView);
+    await fetchRecords(); navigateTo(prevView);
   }
 
   function reset() { setForm(makeEmpty()); setEditId(null); setTitleQuery(""); clear(); setShowSug(false); }
 
   function openDetail(rec: CultureRecord, from: "home"|"category"|"calendar" = "home") {
-    setSelected(rec); setPrevView(from); setView("detail");
+    setSelected(rec); setPrevView(from); navigateTo("detail");
   }
 
   function openEdit(r: CultureRecord) {
     setForm({ category:r.category, title:r.title, date:r.date.slice(0,10), rating:r.rating, review:r.review??"", thumbnail:r.thumbnail??"", author:r.author??"", venue:r.venue??"", date_start:r.date_start?.slice(0,10)??"", date_end:r.date_end?.slice(0,10)??"", finished:r.finished??false });
-    setTitleQuery(r.title); setEditId(r.id); setView("add");
+    setTitleQuery(r.title); setEditId(r.id); navigateTo("add");
   }
 
   function pickSug(s: Suggestion) {
@@ -255,7 +295,7 @@ export default function Home() {
 
   function BackBtn() {
     return (
-      <button onClick={() => setView(prevView)}
+      <button onClick={() => navigateTo(prevView)}
         style={{ display:"flex", alignItems:"center", gap:4, background:F.accent, border:"none", borderRadius:10, padding:"7px 14px 7px 10px", cursor:"pointer", fontFamily:"inherit", color:"#fff", fontWeight:700, fontSize:14, boxShadow:"0 2px 8px rgba(123,97,255,0.3)" }}>
         <span style={{ fontSize:20, lineHeight:1 }}>‹</span>
         <span>뒤로</span>
@@ -302,7 +342,7 @@ export default function Home() {
 
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"0 20px 12px" }}>
               <span style={{ fontSize:13, fontWeight:700, color:F.text }}>최근 기록</span>
-              <button onClick={() => setView("category")} style={{ background:"none", border:"none", fontSize:12, color:F.accent, cursor:"pointer", fontFamily:"inherit", fontWeight:600 }}>전체 보기</button>
+              <button onClick={() => navigateTo("category")} style={{ background:"none", border:"none", fontSize:12, color:F.accent, cursor:"pointer", fontFamily:"inherit", fontWeight:600 }}>전체 보기</button>
             </div>
 
             <div style={{ padding:"0 16px", display:"flex", flexDirection:"column", gap:10 }}>
@@ -353,7 +393,7 @@ export default function Home() {
           <div style={{ flex:1, overflowY:"auto", paddingBottom:140 }}>
             {/* 헤더 — 여백 줄임 */}
             <div style={{ display:"flex", alignItems:"center", padding:"16px 20px 14px", borderBottom:`1px solid ${F.border}`, gap:12 }}>
-              <button onClick={() => { const wasEdit = !!editId; reset(); setView(wasEdit ? "detail" : "home"); }}
+              <button onClick={() => { const wasEdit = !!editId; reset(); navigateTo(wasEdit ? "detail" : "home"); }}
                 style={{ display:"flex", alignItems:"center", gap:4, background:F.accent, border:"none", borderRadius:10, padding:"7px 12px", cursor:"pointer", color:"#fff", fontWeight:700, fontSize:14, fontFamily:"inherit" }}>
                 <span style={{ fontSize:20, lineHeight:1 }}>‹</span>
                 <span>뒤로</span>
@@ -453,21 +493,22 @@ export default function Home() {
                     <div>
                       <p style={{ fontSize:11, color:F.textMut, margin:"0 0 6px" }}>시작일</p>
                       <input
+                        type="date"
                         value={form.date_start}
-                        onChange={e => setForm(f => ({ ...f, date_start:e.target.value.replace(/[^0-9-]/g,""), date:e.target.value||f.date }))}
-                        placeholder="2024-01-01"
-                        maxLength={10}
+                        max={todayStr()}
+                        onChange={e => setForm(f => ({ ...f, date_start:e.target.value, date:e.target.value||f.date }))}
                         style={{ ...flatInput }}
                       />
                     </div>
                     <div>
                       <p style={{ fontSize:11, color:F.textMut, margin:"0 0 6px" }}>완료일</p>
                       <input
+                        type="date"
                         value={form.date_end}
-                        onChange={e => setForm(f => ({ ...f, date_end:e.target.value.replace(/[^0-9-]/g,""), date:e.target.value||f.date }))}
-                        placeholder="2024-01-31"
-                        maxLength={10}
+                        min={form.date_start || undefined}
+                        max={todayStr()}
                         disabled={!(form as any).finished}
+                        onChange={e => setForm(f => ({ ...f, date_end:e.target.value, date:e.target.value||f.date }))}
                         style={{ ...flatInput, opacity:(form as any).finished?1:0.35, transition:"opacity 0.2s" }}
                       />
                     </div>
@@ -488,10 +529,10 @@ export default function Home() {
                 <>
                   <p style={{ ...sectionLabel, marginTop:4 }}>날짜</p>
                   <input
+                    type="date"
                     value={form.date}
-                    onChange={e => setForm(f => ({ ...f, date:e.target.value.replace(/[^0-9-]/g,"") }))}
-                    placeholder="2024-01-01"
-                    maxLength={10}
+                    max={todayStr()}
+                    onChange={e => setForm(f => ({ ...f, date:e.target.value }))}
                     style={{ ...flatInput, marginBottom:18 }}
                   />
                 </>
@@ -638,7 +679,7 @@ export default function Home() {
         {view==="category" && (
           <div style={screenWrap}>
             <div style={{ display:"flex", alignItems:"center", padding:"16px 20px 14px", gap:12, borderBottom:`1px solid ${F.border}` }}>
-              <button onClick={() => setView("home")}
+              <button onClick={() => navigateTo("home")}
                 style={{ display:"flex", alignItems:"center", gap:4, background:F.accent, border:"none", borderRadius:10, padding:"7px 14px 7px 10px", cursor:"pointer", fontFamily:"inherit", color:"#fff", fontWeight:700, fontSize:14, boxShadow:"0 2px 8px rgba(123,97,255,0.3)" }}>
                 <span style={{ fontSize:20, lineHeight:1 }}>‹</span>
                 <span>뒤로</span>
@@ -776,8 +817,8 @@ export default function Home() {
             </div>
             <Card style={{ margin:"0 16px" }}>
               {[
-                { icon:"📊", label:"카테고리별 보기", action:()=>setView("category") },
-                { icon:"📅", label:"캘린더 보기",     action:()=>setView("calendar") },
+                { icon:"📊", label:"카테고리별 보기", action:()=>navigateTo("category") },
+                { icon:"📅", label:"캘린더 보기",     action:()=>navigateTo("calendar") },
               ].map((item,i,arr) => (
                 <button key={item.label} onClick={item.action}
                   style={{ width:"100%", display:"flex", alignItems:"center", gap:14, padding:"14px 4px", background:"none", border:"none", borderBottom:i<arr.length-1?`1px solid ${F.border}`:"none", cursor:"pointer", fontFamily:"inherit", textAlign:"left" }}>
@@ -802,7 +843,7 @@ export default function Home() {
         {view!=="add" && (
           <div style={{ position:"fixed", bottom:0, left:"50%", transform:"translateX(-50%)", width:"100%", maxWidth:390, display:"flex", alignItems:"center", background:F.white, borderTop:`1px solid ${F.border}`, padding:"6px 0 18px", zIndex:20 }}>
             {[{id:"home",label:"홈",emoji:"🏠"},{id:"calendar",label:"캘린더",emoji:"📅"}].map(n => (
-              <button key={n.id} onClick={() => setView(n.id as any)}
+              <button key={n.id} onClick={() => navigateTo(n.id as any)}
                 style={{ flex:1, border:"none", background:"none", cursor:"pointer", display:"flex", flexDirection:"column", alignItems:"center", gap:3, fontFamily:"inherit", padding:"4px 0" }}>
                 <span style={{ fontSize:22 }}>{n.emoji}</span>
                 <span style={{ fontSize:10, color:view===n.id?F.accent:F.textMut, fontWeight:view===n.id?700:400 }}>{n.label}</span>
@@ -811,7 +852,7 @@ export default function Home() {
             ))}
             {/* FAB */}
             <div style={{ flex:1, display:"flex", justifyContent:"center", alignItems:"center" }}>
-              <button onClick={() => { reset(); setView("add"); }}
+              <button onClick={() => { reset(); navigateTo("add"); }}
                 style={{ width:52, height:52, borderRadius:"50%", background:F.accent, border:"none", color:"#fff", fontSize:28, cursor:"pointer", boxShadow:"0 4px 18px rgba(123,97,255,0.4)", display:"flex", alignItems:"center", justifyContent:"center", marginBottom:6, transition:"transform 0.15s" }}
                 onMouseEnter={e => (e.currentTarget.style.transform="scale(1.1)")}
                 onMouseLeave={e => (e.currentTarget.style.transform="")}>
@@ -819,7 +860,7 @@ export default function Home() {
               </button>
             </div>
             {[{id:"category",label:"카테고리",emoji:"🗂️"},{id:"more",label:"더보기",emoji:"···"}].map(n => (
-              <button key={n.id} onClick={() => setView(n.id as any)}
+              <button key={n.id} onClick={() => navigateTo(n.id as any)}
                 style={{ flex:1, border:"none", background:"none", cursor:"pointer", display:"flex", flexDirection:"column", alignItems:"center", gap:3, fontFamily:"inherit", padding:"4px 0" }}>
                 <span style={{ fontSize:22 }}>{n.emoji}</span>
                 <span style={{ fontSize:10, color:view===n.id?F.accent:F.textMut, fontWeight:view===n.id?700:400 }}>{n.label}</span>
