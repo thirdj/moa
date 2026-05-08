@@ -842,7 +842,11 @@ export default function Home() {
             <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"0 20px 16px" }}>
               <button onClick={() => { if(calMonth===0){setCalYear(y=>y-1);setCalMonth(11);}else setCalMonth(m=>m-1); }} style={{ width:34, height:34, borderRadius:10, border:`1px solid ${F.border}`, background:F.white, boxShadow:F.shadow, cursor:"pointer", fontSize:18, color:F.textSub }}>‹</button>
               <span style={{ fontSize:16, fontWeight:700, color:F.text }}>{calYear}년 {calMonth+1}월</span>
-              <button onClick={() => { if(calMonth===11){setCalYear(y=>y+1);setCalMonth(0);}else setCalMonth(m=>m+1); }} style={{ width:34, height:34, borderRadius:10, border:`1px solid ${F.border}`, background:F.white, boxShadow:F.shadow, cursor:"pointer", fontSize:18, color:F.textSub }}>›</button>
+              {/* 미래 월로 못 넘어가게 */}
+              <button
+                onClick={() => { if(calMonth===11){setCalYear(y=>y+1);setCalMonth(0);}else setCalMonth(m=>m+1); }}
+                disabled={calYear===new Date().getFullYear() && calMonth===new Date().getMonth()}
+                style={{ width:34, height:34, borderRadius:10, border:`1px solid ${F.border}`, background:F.white, boxShadow:F.shadow, cursor:"pointer", fontSize:18, color:F.textSub, opacity: calYear===new Date().getFullYear() && calMonth===new Date().getMonth() ? 0.25 : 1 }}>›</button>
             </div>
             <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", padding:"0 14px", marginBottom:4 }}>
               {["일","월","화","수","목","금","토"].map((d,i) => (
@@ -854,9 +858,10 @@ export default function Home() {
               {Array.from({length:daysInMonth}).map((_,i) => {
                 const day=i+1; const ds=calDateStr(day); const recs=recordsOnDay(day);
                 const isSel=calSelected===ds; const isToday=ds===todayStr();
+                const isFuture=ds>todayStr();
                 return (
-                  <div key={day} onClick={() => setCalSelected(ds)} style={{ display:"flex", flexDirection:"column", alignItems:"center", padding:"3px 0", cursor:"pointer" }}>
-                    <div style={{ width:32, height:32, borderRadius:"50%", display:"flex", alignItems:"center", justifyContent:"center", background:isSel?F.accent:isToday?`${F.accent}15`:"transparent", color:isSel?"#fff":isToday?F.accent:F.text, fontSize:13, fontWeight:isToday||isSel?700:400, border:isToday&&!isSel?`1.5px solid ${F.accent}40`:"none" }}>{day}</div>
+                  <div key={day} onClick={() => { if(!isFuture) setCalSelected(ds); }} style={{ display:"flex", flexDirection:"column", alignItems:"center", padding:"3px 0", cursor:isFuture?"default":"pointer" }}>
+                    <div style={{ width:32, height:32, borderRadius:"50%", display:"flex", alignItems:"center", justifyContent:"center", background:isSel?F.accent:isToday?`${F.accent}15`:"transparent", color:isSel?"#fff":isFuture?F.textMut:isToday?F.accent:F.text, fontSize:13, fontWeight:isToday||isSel?700:400, border:isToday&&!isSel?`1.5px solid ${F.accent}40`:"none", opacity:isFuture?0.3:1 }}>{day}</div>
                     <div style={{ display:"flex", gap:2, marginTop:2 }}>
                       {recs.slice(0,3).map((r,idx) => <div key={idx} style={{ width:4, height:4, borderRadius:"50%", background:catOf(r.category).color }} />)}
                     </div>
