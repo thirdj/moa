@@ -77,7 +77,110 @@ const flatInput: React.CSSProperties = {
   fontSize:16, color:F.text,
 };
 
-// ── ImageUrlInput ──────────────────────────────────────────────────
+// ── 커스텀 DatePicker ─────────────────────────────────────────────
+// 네이티브 picker 대신 인라인 달력 드롭다운
+// max는 오늘로 고정, 미래 날짜 선택 불가
+function DatePicker({ value, onChange, min, placeholder = "날짜 선택", disabled = false }: {
+  value: string; onChange: (v: string) => void;
+  min?: string; placeholder?: string; disabled?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const today = todayStr();
+
+  const parsed = value ? new Date(value + "T00:00:00") : new Date();
+  const [calY, setCalY] = useState(parsed.getFullYear());
+  const [calM, setCalM] = useState(parsed.getMonth());
+
+  const days = getDaysInMonth(calY, calM);
+  const first = getFirstDay(calY, calM);
+  const dateStr = (d: number) =>
+    `${calY}-${String(calM+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+
+  function isDisabled(d: number) {
+    const ds = dateStr(d);
+    if (ds > today) return true;          // 미래 막기
+    if (min && ds < min) return true;     // min 이전 막기
+    return false;
+  }
+
+  function select(d: number) {
+    if (isDisabled(d)) return;
+    onChange(dateStr(d));
+    setOpen(false);
+  }
+
+  function prevMonth() {
+    if (calM === 0) { setCalY(y => y-1); setCalM(11); }
+    else setCalM(m => m-1);
+  }
+  function nextMonth() {
+    const nextDs = `${calM===11?calY+1:calY}-${String((calM===11?0:calM+1)+1).padStart(2,"0")}-01`;
+    if (nextDs > today) return; // 미래 월로 넘어가지 않게
+    if (calM === 11) { setCalY(y => y+1); setCalM(0); }
+    else setCalM(m => m+1);
+  }
+
+  return (
+    <div style={{ position:"relative" }}>
+      {/* 트리거 버튼 */}
+      <button
+        type="button"
+        onClick={() => { if(!disabled) setOpen(o => !o); }}
+        style={{ ...flatInput as any, display:"flex", alignItems:"center", justifyContent:"space-between", cursor:disabled?"default":"pointer", opacity:disabled?0.35:1, border:`1.5px solid ${open ? F.accent : F.border}`, background:F.bg, textAlign:"left" }}>
+        <span style={{ color: value ? F.text : F.textMut, fontSize:15 }}>
+          {value ? formatDate(value) : placeholder}
+        </span>
+        <span style={{ fontSize:16, color:F.textMut }}>📅</span>
+      </button>
+
+      {/* 인라인 달력 */}
+      {open && (
+        <div style={{ position:"absolute", top:"calc(100% + 6px)", left:0, right:0, background:F.white, borderRadius:16, boxShadow:F.shadowMd, border:`1px solid ${F.border}`, zIndex:100, padding:"12px 10px", overflow:"hidden" }}>
+          {/* 월 네비 */}
+          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:10, padding:"0 4px" }}>
+            <button type="button" onClick={prevMonth}
+              style={{ background:"none", border:"none", fontSize:18, cursor:"pointer", color:F.textSub, padding:"4px 8px" }}>‹</button>
+            <span style={{ fontSize:14, fontWeight:700, color:F.text }}>{calY}년 {calM+1}월</span>
+            <button type="button" onClick={nextMonth}
+              style={{ background:"none", border:"none", fontSize:18, cursor:"pointer", color:F.textSub, padding:"4px 8px",
+                opacity: `${calY}-${String(calM+2).padStart(2,"0")}-01` > today ? 0.3 : 1 }}>›</button>
+          </div>
+
+          {/* 요일 헤더 */}
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", marginBottom:4 }}>
+            {["일","월","화","수","목","금","토"].map((d,i) => (
+              <div key={d} style={{ textAlign:"center", fontSize:10, fontWeight:600, color:i===0?"#FF6B6B":i===6?F.accent:F.textMut, padding:"2px 0" }}>{d}</div>
+            ))}
+          </div>
+
+          {/* 날짜 그리드 */}
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", gap:"2px 0" }}>
+            {Array.from({length:first}).map((_,i) => <div key={`e-${i}`} />)}
+            {Array.from({length:days}).map((_,i) => {
+              const d = i+1;
+              const ds = dateStr(d);
+              const sel = ds === value;
+              const dis = isDisabled(d);
+              const isToday = ds === today;
+              return (
+                <button key={d} type="button" onClick={() => select(d)} disabled={dis}
+                  style={{ width:"100%", aspectRatio:"1", borderRadius:"50%", border:"none", cursor:dis?"default":"pointer", fontFamily:"inherit", fontSize:13, fontWeight:sel||isToday?700:400, background:sel?F.accent:isToday?`${F.accent}18`:"transparent", color:sel?"#fff":dis?F.textMut:isToday?F.accent:F.text, opacity:dis?0.35:1, transition:"all 0.1s" }}>
+                  {d}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* 오늘 바로가기 */}
+          <div style={{ textAlign:"center", marginTop:8, paddingTop:8, borderTop:`1px solid ${F.border}` }}>
+            <button type="button" onClick={() => { onChange(today); setOpen(false); }}
+              style={{ background:"none", border:"none", fontSize:12, color:F.accent, cursor:"pointer", fontWeight:600 }}>오늘</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 function ImageUrlInput({ value, onChange }: { value: string; onChange: (url: string) => void }) {
   const [input, setInput] = useState(value);
   const [status, setStatus] = useState<"idle"|"loading"|"ok"|"warn">("idle");
@@ -488,53 +591,45 @@ export default function Home() {
               {/* 책 — 읽기 시작/완독 */}
               {form.category==="book" ? (
                 <>
-                  <p style={sectionLabel}>읽기 기간 <span style={{ color:F.textMut, textTransform:"none", fontWeight:400 }}>(선택)</span></p>
-                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:14 }}>
-                    <div>
-                      <p style={{ fontSize:11, color:F.textMut, margin:"0 0 6px" }}>시작일</p>
-                      <input
-                        type="date"
-                        value={form.date_start}
-                        max={todayStr()}
-                        onChange={e => setForm(f => ({ ...f, date_start:e.target.value, date:e.target.value||f.date }))}
-                        style={{ ...flatInput }}
-                      />
-                    </div>
-                    <div>
-                      <p style={{ fontSize:11, color:F.textMut, margin:"0 0 6px" }}>완료일</p>
-                      <input
-                        type="date"
-                        value={form.date_end}
-                        min={form.date_start || undefined}
-                        max={todayStr()}
-                        disabled={!(form as any).finished}
-                        onChange={e => setForm(f => ({ ...f, date_end:e.target.value, date:e.target.value||f.date }))}
-                        style={{ ...flatInput, opacity:(form as any).finished?1:0.35, transition:"opacity 0.2s" }}
-                      />
-                    </div>
-                  </div>
-                  {/* 완독 체크 */}
+                  {/* 완독 체크 — 먼저 표시 */}
                   <div
-                    onClick={() => setForm(f => ({ ...f, finished:!(f as any).finished, date_end:(f as any).finished?"":f.date_end }))}
-                    style={{ display:"flex", alignItems:"center", gap:10, padding:"13px 16px", background:F.white, borderRadius:14, border:`1.5px solid ${(form as any).finished ? F.accent : F.border}`, cursor:"pointer", marginBottom:18, transition:"all 0.15s", boxShadow:F.shadow }}>
+                    onClick={() => {
+                      const nowFinished = !(form as any).finished;
+                      setForm(f => ({
+                        ...f,
+                        finished: nowFinished,
+                        date_end: nowFinished ? todayStr() : "", // 완독 체크 시 오늘 자동
+                        date: nowFinished ? todayStr() : f.date,
+                      }));
+                    }}
+                    style={{ display:"flex", alignItems:"center", gap:10, padding:"13px 16px", background:F.white, borderRadius:14, border:`1.5px solid ${(form as any).finished ? F.accent : F.border}`, cursor:"pointer", marginBottom:16, transition:"all 0.15s", boxShadow:F.shadow }}>
                     <div style={{ width:22, height:22, borderRadius:6, border:`2px solid ${(form as any).finished ? F.accent : F.textMut}`, background:(form as any).finished ? F.accent : "transparent", display:"flex", alignItems:"center", justifyContent:"center", transition:"all 0.15s", flexShrink:0 }}>
                       {(form as any).finished && <span style={{ color:"#fff", fontSize:13, lineHeight:1, fontWeight:700 }}>✓</span>}
                     </div>
                     <span style={{ fontSize:14, fontWeight:600, color:(form as any).finished ? F.accent : F.text }}>완독했어요 📖</span>
-                    {(form as any).finished && <span style={{ marginLeft:"auto", fontSize:11, color:F.textMut }}>완료일을 입력하세요</span>}
+                  </div>
+
+                  {/* 읽기 기간 — 시작일만 입력 (완료일은 상세에서 표시) */}
+                  <p style={sectionLabel}>읽기 시작일 <span style={{ color:F.textMut, textTransform:"none", fontWeight:400 }}>(선택)</span></p>
+                  <div style={{ marginBottom:18 }}>
+                    <DatePicker
+                      value={form.date_start}
+                      onChange={v => setForm(f => ({ ...f, date_start:v, date:v||f.date }))}
+                      placeholder="읽기 시작한 날"
+                    />
                   </div>
                 </>
               ) : (
-                /* 책 외 — 텍스트 날짜 입력 */
+                /* 책 외 — 커스텀 달력 */
                 <>
                   <p style={{ ...sectionLabel, marginTop:4 }}>날짜</p>
-                  <input
-                    type="date"
-                    value={form.date}
-                    max={todayStr()}
-                    onChange={e => setForm(f => ({ ...f, date:e.target.value }))}
-                    style={{ ...flatInput, marginBottom:18 }}
-                  />
+                  <div style={{ marginBottom:18 }}>
+                    <DatePicker
+                      value={form.date}
+                      onChange={v => setForm(f => ({ ...f, date:v }))}
+                      placeholder="날짜 선택"
+                    />
+                  </div>
                 </>
               )}
 
@@ -626,27 +721,40 @@ export default function Home() {
 
                     {selected.author && <div style={{ display:"flex", alignItems:"center", gap:5, marginBottom:5 }}><span style={{ fontSize:12, color:F.textMut }}>👤</span><span style={{ fontSize:13, color:F.textSub }}>{selected.author}</span></div>}
                     {selected.venue  && <div style={{ display:"flex", alignItems:"center", gap:5, marginBottom:5 }}><span style={{ fontSize:12, color:F.textMut }}>📍</span><span style={{ fontSize:13, color:F.textSub }}>{selected.venue}</span></div>}
+
                     {selected.category==="book" ? (
-                      <div style={{ display:"flex", flexDirection:"column", gap:4 }}>
-                        {selected.date_start && (
+                      <div style={{ display:"flex", flexDirection:"column", gap:5 }}>
+                        {/* 읽기 기간 */}
+                        {(selected.date_start || selected.date_end) && (
                           <div style={{ display:"flex", alignItems:"center", gap:5 }}>
                             <span style={{ fontSize:12, color:F.textMut }}>📖</span>
                             <span style={{ fontSize:12, color:F.textMut }}>
-                              {formatDate(selected.date_start)}
-                              {" → "}
-                              {selected.finished && selected.date_end ? formatDate(selected.date_end) : selected.finished ? "완독" : "읽는 중"}
+                              {selected.date_start ? formatDate(selected.date_start) : "?"}
+                              {(selected.finished || selected.date_end) && (
+                                <> → {selected.date_end ? formatDate(selected.date_end) : "읽는 중"}</>
+                              )}
                             </span>
                           </div>
                         )}
-                        {selected.finished && (
-                          <div style={{ display:"inline-flex", alignItems:"center", gap:4, background:`${F.accent}12`, padding:"3px 8px", borderRadius:20, marginTop:2, width:"fit-content" }}>
+                        {/* 완독 뱃지 */}
+                        {selected.finished ? (
+                          <div style={{ display:"inline-flex", alignItems:"center", gap:4, background:`${F.accent}12`, padding:"3px 10px", borderRadius:20, width:"fit-content" }}>
                             <span style={{ fontSize:11 }}>✓</span>
                             <span style={{ fontSize:11, color:F.accent, fontWeight:700 }}>완독</span>
                           </div>
-                        )}
+                        ) : selected.date_start ? (
+                          <div style={{ display:"inline-flex", alignItems:"center", gap:4, background:"#FFF3E0", padding:"3px 10px", borderRadius:20, width:"fit-content" }}>
+                            <span style={{ fontSize:11 }}>📚</span>
+                            <span style={{ fontSize:11, color:"#FF9800", fontWeight:700 }}>읽는 중</span>
+                          </div>
+                        ) : null}
                       </div>
                     ) : (
-                      <div style={{ display:"flex", alignItems:"center", gap:5 }}><span style={{ fontSize:12, color:F.textMut }}>📅</span><span style={{ fontSize:12, color:F.textMut }}>{formatDate(selected.date)}</span></div>
+                      /* 책 외 — 날짜 표시 */
+                      <div style={{ display:"flex", alignItems:"center", gap:5 }}>
+                        <span style={{ fontSize:12, color:F.textMut }}>📅</span>
+                        <span style={{ fontSize:12, color:F.textMut }}>{formatDate(selected.date)}</span>
+                      </div>
                     )}
                   </div>
                 </div>
