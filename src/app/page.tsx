@@ -34,7 +34,7 @@ const CATS = [
   { id:"book",       label:"책",          emoji:"📚", color:"#7B61FF" },
   { id:"movie",      label:"영화",        emoji:"🎬", color:"#FF6B6B" },
   { id:"exhibition", label:"전시",        emoji:"🖼️", color:"#FFB347" },
-  { id:"musical",    label:"공연",        emoji:"🎭", color:"#FF69B4" },
+  { id:"musical",    label:"공연",      emoji:"🎭", color:"#FF69B4" },
   { id:"concert",    label:"콘서트",      emoji:"🎵", color:"#2DCBA0" },
 ];
 const catOf = (id: string) => CATS.find(c => c.id === id) ?? CATS[0];
@@ -798,53 +798,112 @@ export default function Home() {
           );
         })()}
 
-        {/* ══ CATEGORY ══════════════════════════════════════════════ */}
+        {/* ══ CATEGORY = 통계 ═══════════════════════════════════════ */}
         {view==="category" && (
           <div style={screenWrap}>
-            <div style={{ display:"flex", alignItems:"center", padding:"16px 20px 14px", gap:12, borderBottom:`1px solid ${F.border}` }}>
-              <button onClick={() => navigateTo("home")}
-                style={{ display:"flex", alignItems:"center", gap:4, background:F.accent, border:"none", borderRadius:10, padding:"7px 14px 7px 10px", cursor:"pointer", fontFamily:"inherit", color:"#fff", fontWeight:700, fontSize:14, boxShadow:"0 2px 8px rgba(123,97,255,0.3)" }}>
-                <span style={{ fontSize:20, lineHeight:1 }}>‹</span>
-                <span>뒤로</span>
-              </button>
-              <p style={{ flex:1, fontSize:17, fontWeight:700, textAlign:"center", margin:0, color:F.text }}>카테고리</p>
-              <div style={{ width:60 }} />
+            <div style={{ padding:"20px 20px 14px" }}>
+              <h2 style={{ fontSize:22, fontWeight:800, color:F.text, margin:0 }}>통계</h2>
             </div>
-            <div style={{ display:"flex", gap:8, padding:"12px 16px", overflowX:"auto", borderBottom:`1px solid ${F.border}` }}>
-              {[{id:"all",label:"전체"},...CATS].map(c => (
-                <button key={c.id} onClick={() => setFilterCat(c.id)}
-                  style={{ padding:"6px 14px", borderRadius:20, border:"none", background:filterCat===c.id?F.accent:F.white, color:filterCat===c.id?"#fff":F.textSub, fontWeight:filterCat===c.id?700:500, fontSize:12, cursor:"pointer", whiteSpace:"nowrap", fontFamily:"inherit", flexShrink:0, boxShadow:filterCat===c.id?"none":F.shadow, transition:"all 0.2s" }}>
-                  {c.label}
-                </button>
+
+            {/* 요약 카드 */}
+            <div style={{ margin:"0 16px 16px", display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10 }}>
+              {[
+                { label:"총 기록", value:`${records.length}개`, emoji:"📝" },
+                { label:"평균 별점", value:records.length?`${(records.reduce((s,r)=>s+Number(r.rating),0)/records.length).toFixed(1)}`:"-", emoji:"⭐" },
+                { label:"이번 달", value:`${records.filter(r=>r.date?.slice(0,7)===todayStr().slice(0,7)).length}개`, emoji:"📅" },
+              ].map(s => (
+                <Card key={s.label}>
+                  <div style={{ textAlign:"center" }}>
+                    <p style={{ fontSize:22, margin:"0 0 4px" }}>{s.emoji}</p>
+                    <p style={{ fontSize:18, fontWeight:800, color:F.accent, margin:"0 0 2px" }}>{s.value}</p>
+                    <p style={{ fontSize:10, color:F.textMut, margin:0 }}>{s.label}</p>
+                  </div>
+                </Card>
               ))}
             </div>
-            <div style={{ padding:"10px 16px", display:"flex", flexDirection:"column", gap:10 }}>
-              {filtered.length===0
-                ? <div style={{ textAlign:"center", padding:60, color:F.textMut, fontSize:14 }}>기록이 없어요</div>
-                : filtered.map(rec => {
-                  const cat = catOf(rec.category);
+
+            {/* 카테고리별 분포 */}
+            <Card style={{ margin:"0 16px 16px" }}>
+              <p style={{ fontSize:13, fontWeight:700, color:F.text, margin:"0 0 14px" }}>카테고리별 기록</p>
+              {records.length===0
+                ? <p style={{ fontSize:13, color:F.textMut, textAlign:"center", padding:"10px 0" }}>아직 기록이 없어요</p>
+                : CATS.map(c => {
+                  const cnt = records.filter(r => r.category===c.id).length;
+                  if (!cnt) return null;
+                  const pct = Math.round((cnt/records.length)*100);
+                  const avg = (records.filter(r=>r.category===c.id).reduce((s,r)=>s+Number(r.rating),0)/cnt).toFixed(1);
                   return (
-                    <Card key={rec.id} onClick={() => openDetail(rec, "category")}>
-                      <div style={{ display:"flex", alignItems:"center", gap:12, overflow:"hidden" }}>
-                        {rec.thumbnail
-                          ? <img src={rec.thumbnail} style={{ width:48, height:64, objectFit:"cover", borderRadius:10, flexShrink:0 }} />
-                          : <div style={{ width:48, height:64, borderRadius:10, background:`${cat.color}15`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:22, flexShrink:0 }}>{cat.emoji}</div>
-                        }
-                        <div style={{ flex:1, minWidth:0 }}>
-                          <div style={{ marginBottom:3 }}><CatDot id={rec.category} /></div>
-                          <p style={{ fontSize:15, fontWeight:700, color:F.text, margin:"0 0 4px", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{rec.title}</p>
-                          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-                            <Stars v={Number(rec.rating)} size={12} />
-                            <span style={{ fontSize:11, color:F.textMut }}>{formatDate(rec.date)}</span>
-                          </div>
-                          {rec.review && <p style={{ fontSize:12, color:F.textSub, margin:"3px 0 0", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{rec.review}</p>}
+                    <div key={c.id} style={{ marginBottom:14 }}>
+                      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:6 }}>
+                        <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                          <span style={{ fontSize:16 }}>{c.emoji}</span>
+                          <span style={{ fontSize:13, fontWeight:600, color:F.text }}>{c.label}</span>
+                          <span style={{ fontSize:11, color:F.textMut }}>{cnt}개</span>
+                        </div>
+                        <div style={{ display:"flex", alignItems:"center", gap:4 }}>
+                          <span style={{ fontSize:11, color:"#FFB800" }}>★</span>
+                          <span style={{ fontSize:11, color:F.textSub, fontWeight:600 }}>{avg}</span>
                         </div>
                       </div>
-                    </Card>
+                      <div style={{ height:7, background:F.border, borderRadius:10, overflow:"hidden" }}>
+                        <div style={{ width:`${pct}%`, height:"100%", background:c.color, borderRadius:10, transition:"width 0.5s" }} />
+                      </div>
+                    </div>
                   );
                 })
               }
-            </div>
+            </Card>
+
+            {/* 완독 현황 (책만) */}
+            {records.filter(r=>r.category==="book").length > 0 && (
+              <Card style={{ margin:"0 16px 16px" }}>
+                <p style={{ fontSize:13, fontWeight:700, color:F.text, margin:"0 0 14px" }}>📚 독서 현황</p>
+                {(() => {
+                  const books = records.filter(r => r.category==="book");
+                  const finished = books.filter(r => r.finished).length;
+                  const reading = books.filter(r => r.date_start && !r.finished).length;
+                  const notStarted = books.length - finished - reading;
+                  return (
+                    <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8 }}>
+                      {[
+                        { label:"완독", value:finished, color:F.accent },
+                        { label:"읽는 중", value:reading, color:"#FF9800" },
+                        { label:"미시작", value:notStarted, color:F.textMut },
+                      ].map(s => (
+                        <div key={s.label} style={{ textAlign:"center", padding:"10px 6px", background:F.bg, borderRadius:12 }}>
+                          <p style={{ fontSize:20, fontWeight:800, color:s.color, margin:"0 0 3px" }}>{s.value}</p>
+                          <p style={{ fontSize:11, color:F.textMut, margin:0 }}>{s.label}</p>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </Card>
+            )}
+
+            {/* 최고 평점 */}
+            {records.length > 0 && (
+              <Card style={{ margin:"0 16px 16px" }}>
+                <p style={{ fontSize:13, fontWeight:700, color:F.text, margin:"0 0 12px" }}>⭐ 높게 평가한 기록</p>
+                {[...records].sort((a,b)=>Number(b.rating)-Number(a.rating)).slice(0,3).map(rec => {
+                  const cat = catOf(rec.category);
+                  return (
+                    <div key={rec.id} onClick={() => openDetail(rec,"category")}
+                      style={{ display:"flex", alignItems:"center", gap:10, marginBottom:10, cursor:"pointer" }}>
+                      {rec.thumbnail
+                        ? <img src={rec.thumbnail} style={{ width:36,height:50,objectFit:"cover",borderRadius:8,flexShrink:0 }} />
+                        : <div style={{ width:36,height:50,borderRadius:8,background:`${cat.color}15`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0 }}>{cat.emoji}</div>
+                      }
+                      <div style={{ flex:1, minWidth:0 }}>
+                        <p style={{ fontSize:14,fontWeight:700,color:F.text,margin:"0 0 3px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{rec.title}</p>
+                        <Stars v={Number(rec.rating)} size={12} />
+                      </div>
+                      <span style={{ fontSize:14,fontWeight:800,color:"#FFB800" }}>{Number(rec.rating).toFixed(1)}</span>
+                    </div>
+                  );
+                })}
+              </Card>
+            )}
           </div>
         )}
 
@@ -945,8 +1004,8 @@ export default function Home() {
             </div>
             <Card style={{ margin:"0 16px" }}>
               {[
-                { icon:"📊", label:"카테고리별 보기", action:()=>navigateTo("category") },
-                { icon:"📅", label:"캘린더 보기",     action:()=>navigateTo("calendar") },
+                { icon:"📊", label:"통계 보기",     action:()=>navigateTo("category") },
+                { icon:"📅", label:"캘린더 보기",   action:()=>navigateTo("calendar") },
               ].map((item,i,arr) => (
                 <button key={item.label} onClick={item.action}
                   style={{ width:"100%", display:"flex", alignItems:"center", gap:14, padding:"14px 4px", background:"none", border:"none", borderBottom:i<arr.length-1?`1px solid ${F.border}`:"none", cursor:"pointer", fontFamily:"inherit", textAlign:"left" }}>
@@ -969,10 +1028,10 @@ export default function Home() {
 
         {/* ══ BOTTOM NAV ════════════════════════════════════════════ */}
         {view!=="add" && (
-          <div style={{ position:"fixed", bottom:0, left:"50%", transform:"translateX(-50%)", width:"100%", maxWidth:390, display:"flex", alignItems:"center", background:F.white, borderTop:`1px solid ${F.border}`, padding:"6px 0 18px", zIndex:20 }}>
+          <div style={{ position:"fixed", bottom:0, left:"50%", transform:"translateX(-50%)", width:"100%", maxWidth:390, display:"flex", alignItems:"center", background:F.white, borderTop:`1px solid ${F.border}`, padding:"4px 0 14px", zIndex:20 }}>
             {[{id:"home",label:"홈",emoji:"🏠"},{id:"calendar",label:"캘린더",emoji:"📅"}].map(n => (
               <button key={n.id} onClick={() => navigateTo(n.id as any)}
-                style={{ flex:1, border:"none", background:"none", cursor:"pointer", display:"flex", flexDirection:"column", alignItems:"center", gap:3, fontFamily:"inherit", padding:"6px 0" }}>
+                style={{ flex:1, border:"none", background:"none", cursor:"pointer", display:"flex", flexDirection:"column", alignItems:"center", gap:3, fontFamily:"inherit", padding:"6px 0", WebkitTapHighlightColor:"transparent", outline:"none" }}>
                 <span style={{ fontSize:22, filter: view===n.id ? `drop-shadow(0 0 4px ${F.accent}80)` : "none", transition:"filter 0.2s" }}>{n.emoji}</span>
                 <span style={{ fontSize:10, color:view===n.id?F.accent:F.textMut, fontWeight:view===n.id?700:400, transition:"color 0.2s" }}>{n.label}</span>
               </button>
@@ -986,9 +1045,9 @@ export default function Home() {
                 +
               </button>
             </div>
-            {[{id:"category",label:"카테고리",emoji:"🗂️"},{id:"more",label:"더보기",emoji:"···"}].map(n => (
+            {[{id:"category",label:"통계",emoji:"📊"},{id:"more",label:"더보기",emoji:"···"}].map(n => (
               <button key={n.id} onClick={() => navigateTo(n.id as any)}
-                style={{ flex:1, border:"none", background:"none", cursor:"pointer", display:"flex", flexDirection:"column", alignItems:"center", gap:3, fontFamily:"inherit", padding:"6px 0" }}>
+                style={{ flex:1, border:"none", background:"none", cursor:"pointer", display:"flex", flexDirection:"column", alignItems:"center", gap:3, fontFamily:"inherit", padding:"6px 0", WebkitTapHighlightColor:"transparent", outline:"none" }}>
                 <span style={{ fontSize:22, filter: view===n.id ? `drop-shadow(0 0 4px ${F.accent}80)` : "none", transition:"filter 0.2s" }}>{n.emoji}</span>
                 <span style={{ fontSize:10, color:view===n.id?F.accent:F.textMut, fontWeight:view===n.id?700:400, transition:"color 0.2s" }}>{n.label}</span>
               </button>
@@ -1000,6 +1059,8 @@ export default function Home() {
           @keyframes spin { to { transform: rotate(360deg); } }
           * { -webkit-tap-highlight-color: transparent; }
           input, textarea, select { font-size: 16px !important; }
+          button:focus { outline: none; }
+          button:active { opacity: 0.8; }
         `}</style>
       </div>
     </div>
