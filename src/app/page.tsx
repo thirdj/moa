@@ -35,7 +35,7 @@ const CATS = [
   { id:"movie",      label:"영화",        emoji:"🎬", color:"#FF6B6B" },
   { id:"exhibition", label:"전시",        emoji:"🖼️", color:"#FFB347" },
   { id:"musical",    label:"공연",        emoji:"🎭", color:"#FF69B4" },
-  { id:"concert",    label:"콘서트",       emoji:"🎵", color:"#2DCBA0" },
+  { id:"concert",    label:"콘서트",      emoji:"🎵", color:"#2DCBA0" },
 ];
 const catOf = (id: string) => CATS.find(c => c.id === id) ?? CATS[0];
 
