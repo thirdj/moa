@@ -11,7 +11,7 @@ const pool = new Pool({
 });
 
 export const authOptions: NextAuthOptions = {
-  // @ts-ignore — @auth/pg-adapter와 next-auth v4 타입 불일치 무시
+  // @ts-ignore
   adapter: PostgresAdapter(pool),
   providers: [
     GoogleProvider({

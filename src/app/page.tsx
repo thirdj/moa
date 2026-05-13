@@ -34,7 +34,7 @@ const CATS = [
   { id:"book",       label:"책",          emoji:"📚", color:"#7B61FF" },
   { id:"movie",      label:"영화",        emoji:"🎬", color:"#FF6B6B" },
   { id:"exhibition", label:"전시",        emoji:"🖼️", color:"#FFB347" },
-  { id:"musical",    label:"공연",      emoji:"🎭", color:"#FF69B4" },
+  { id:"musical",    label:"공연",        emoji:"🎭", color:"#FF69B4" },
   { id:"concert",    label:"콘서트",      emoji:"🎵", color:"#2DCBA0" },
 ];
 const catOf = (id: string) => CATS.find(c => c.id === id) ?? CATS[0];
@@ -262,6 +262,7 @@ const makeEmpty = () => ({ category:"", title:"", date:todayStr(), rating:0, rev
 
 export default function Home() {
   const { data:session, status } = useSession();
+  const isLoading = status === "loading";
   const router = useRouter();
   const [records, setRecords] = useState<CultureRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -280,8 +281,8 @@ export default function Home() {
 
   const { suggestions, loading:acLoading, clear } = useAutocomplete(titleQuery, form.category, showSug && !!form.category);
 
-  useEffect(() => { if(status==="unauthenticated") router.push("/login"); }, [status]);
-  useEffect(() => { if(status==="authenticated") fetchRecords(); }, [status]);
+  useEffect(() => { if(status === "unauthenticated") router.push("/login"); }, [status]);
+  useEffect(() => { if(status === "authenticated") fetchRecords(); }, [status]);
 
   // ── 브라우저 히스토리 연동 — 스와이프 뒤로가기 지원 ──────────────
   // view가 바뀔 때마다 히스토리에 쌓아서 스와이프/뒤로가기가 앱 내 이전 화면으로 이동
@@ -378,7 +379,7 @@ export default function Home() {
   const recordsOnDay = (d: number) => records.filter(r => r.date?.slice(0,10)===calDateStr(d));
   const selectedDayRecords = records.filter(r => r.date?.slice(0,10)===calSelected);
 
-  if (status==="loading") return (
+  if (status === "loading") return (
     <div style={{ minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center", background:F.bg, color:F.textMut }}>로딩 중...</div>
   );
 
@@ -429,7 +430,7 @@ export default function Home() {
                 <h1 style={{ fontSize:22, fontWeight:800, color:F.text, margin:0 }}>나의 문화 기록</h1>
               </div>
               {session?.user?.image && (
-                <img src={session.user.image} style={{ width:34, height:34, borderRadius:"50%", border:`2px solid ${F.accent}30` }} />
+                <img src={session?.user?.image} style={{ width:34, height:34, borderRadius:"50%", border:`2px solid ${F.accent}30` }} />
               )}
             </div>
 
@@ -977,13 +978,13 @@ export default function Home() {
             {session?.user && (
               <Card style={{ margin:"0 16px 16px" }}>
                 <div style={{ display:"flex", alignItems:"center", gap:14 }}>
-                  {session.user.image
-                    ? <img src={session.user.image} style={{ width:52, height:52, borderRadius:"50%", boxShadow:F.shadow }} />
+                  {session?.user?.image
+                    ? <img src={session?.user?.image} style={{ width:52, height:52, borderRadius:"50%", boxShadow:F.shadow }} />
                     : <div style={{ width:52,height:52,borderRadius:"50%",background:`${F.accent}15`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22 }}>👤</div>
                   }
                   <div>
-                    <p style={{ fontSize:16, fontWeight:700, color:F.text, margin:"0 0 3px" }}>{session.user.name}</p>
-                    <p style={{ fontSize:12, color:F.textMut, margin:0 }}>{session.user.email}</p>
+                    <p style={{ fontSize:16, fontWeight:700, color:F.text, margin:"0 0 3px" }}>{session?.user?.name}</p>
+                    <p style={{ fontSize:12, color:F.textMut, margin:0 }}>{session?.user?.email}</p>
                   </div>
                 </div>
               </Card>
