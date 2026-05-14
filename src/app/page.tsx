@@ -34,7 +34,7 @@ const CATS = [
   { id:"book",       label:"책",          emoji:"📚", color:"#7B61FF" },
   { id:"movie",      label:"영화",        emoji:"🎬", color:"#FF6B6B" },
   { id:"exhibition", label:"전시",        emoji:"🖼️", color:"#FFB347" },
-  { id:"musical",    label:"공연",        emoji:"🎭", color:"#FF69B4" },
+  { id:"musical",    label:"공연/뮤지컬", emoji:"🎭", color:"#FF69B4" },
   { id:"concert",    label:"콘서트",      emoji:"🎵", color:"#2DCBA0" },
 ];
 const catOf = (id: string) => CATS.find(c => c.id === id) ?? CATS[0];
@@ -270,6 +270,7 @@ export default function Home() {
   const [prevView, setPrevView] = useState<"home"|"category"|"calendar">("home");
   const [selected, setSelected] = useState<CultureRecord|null>(null);
   const [filterCat, setFilterCat] = useState("all");
+  const [sortBy, setSortBy] = useState<"latest"|"date"|"rating">("latest");
   const [form, setForm] = useState(makeEmpty);
   const [editId, setEditId] = useState<number|null>(null);
   const [saving, setSaving] = useState(false);
@@ -278,6 +279,7 @@ export default function Home() {
   const [calYear, setCalYear] = useState(new Date().getFullYear());
   const [calMonth, setCalMonth] = useState(new Date().getMonth());
   const [calSelected, setCalSelected] = useState<string>(todayStr());
+  const homeScrollRef = useRef<HTMLDivElement>(null);
 
   const { suggestions, loading:acLoading, clear } = useAutocomplete(titleQuery, form.category, showSug && !!form.category);
 
@@ -370,7 +372,19 @@ export default function Home() {
     clear(); setShowSug(false);
   }
 
-  const filtered = filterCat==="all" ? records : records.filter(r => r.category===filterCat);
+  const filtered = (() => {
+    const base = filterCat==="all" ? records : records.filter(r => r.category===filterCat);
+    return [...base].sort((a, b) => {
+      if (sortBy==="rating") return Number(b.rating) - Number(a.rating);
+      if (sortBy==="date") {
+        const da = a.date_start || a.date || "";
+        const db = b.date_start || b.date || "";
+        return db.localeCompare(da);
+      }
+      // latest = created_at 순 (DB에서 이미 정렬되어 옴)
+      return 0;
+    });
+  })();
   const activeCat = catOf(form.category);
   const canSave = !!form.title && !!form.category && !!form.rating;
   const daysInMonth = getDaysInMonth(calYear, calMonth);
@@ -423,7 +437,7 @@ export default function Home() {
 
         {/* ══ HOME ══════════════════════════════════════════════════ */}
         {view==="home" && (
-          <div style={screenWrap}>
+          <div ref={homeScrollRef} style={screenWrap}>
             <div style={{ padding:"20px 20px 10px", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
               <div>
                 <p style={{ fontSize:11, color:F.textMut, letterSpacing:2, margin:"0 0 4px" }}>MY CULTURE LOG</p>
@@ -435,18 +449,23 @@ export default function Home() {
             </div>
 
             {/* 카테고리 필터 */}
-            <div style={{ padding:"0 16px 14px", display:"flex", gap:8, overflowX:"auto" }}>
+            <div style={{ padding:"0 16px 10px", display:"flex", gap:8, overflowX:"auto" }}>
               {[{id:"all",label:"전체"},...CATS].map(c => (
                 <button key={c.id} onClick={() => setFilterCat(c.id)}
-                  style={{ padding:"6px 14px", borderRadius:20, border:"none", background:filterCat===c.id?F.accent:F.white, color:filterCat===c.id?"#fff":F.textSub, fontWeight:filterCat===c.id?700:500, fontSize:12, cursor:"pointer", whiteSpace:"nowrap", fontFamily:"inherit", flexShrink:0, boxShadow:filterCat===c.id?"none":F.shadow, transition:"all 0.2s" }}>
+                  style={{ padding:"6px 14px", borderRadius:20, border:"none", background:filterCat===c.id?F.accent:F.white, color:filterCat===c.id?"#fff":F.textSub, fontWeight:filterCat===c.id?700:500, fontSize:12, cursor:"pointer", whiteSpace:"nowrap", fontFamily:"inherit", flexShrink:0, boxShadow:filterCat===c.id?"none":F.shadow, transition:"all 0.2s", WebkitTapHighlightColor:"transparent", outline:"none" }}>
                   {c.label}
                 </button>
               ))}
             </div>
 
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"0 20px 12px" }}>
-              <span style={{ fontSize:13, fontWeight:700, color:F.text }}>최근 기록</span>
-              <button onClick={() => navigateTo("category")} style={{ background:"none", border:"none", fontSize:12, color:F.accent, cursor:"pointer", fontFamily:"inherit", fontWeight:600 }}>전체 보기</button>
+            {/* 정렬 */}
+            <div style={{ display:"flex", justifyContent:"flex-end", padding:"0 18px 10px", gap:6 }}>
+              {([["latest","최신순"],["date","관람순"],["rating","별점순"]] as const).map(([val, label]) => (
+                <button key={val} onClick={() => setSortBy(val)}
+                  style={{ padding:"4px 10px", borderRadius:12, border:`1px solid ${sortBy===val?F.accent:F.border}`, background:sortBy===val?`${F.accent}10`:F.white, color:sortBy===val?F.accent:F.textMut, fontSize:11, fontWeight:sortBy===val?700:400, cursor:"pointer", fontFamily:"inherit", transition:"all 0.15s", WebkitTapHighlightColor:"transparent", outline:"none" }}>
+                  {label}
+                </button>
+              ))}
             </div>
 
             <div style={{ padding:"0 16px", display:"flex", flexDirection:"column", gap:10 }}>
@@ -1029,18 +1048,26 @@ export default function Home() {
 
         {/* ══ BOTTOM NAV ════════════════════════════════════════════ */}
         {view!=="add" && (
-          <div style={{ position:"fixed", bottom:0, left:"50%", transform:"translateX(-50%)", width:"100%", maxWidth:390, display:"flex", alignItems:"center", background:F.white, borderTop:`1px solid ${F.border}`, padding:"4px 0 14px", zIndex:20 }}>
+          <div style={{ position:"fixed", bottom:0, left:"50%", transform:"translateX(-50%)", width:"100%", maxWidth:390, display:"flex", alignItems:"center", background:F.white, borderTop:`1px solid ${F.border}`, padding:"4px 0 8px", zIndex:20 }}>
             {[{id:"home",label:"홈",emoji:"🏠"},{id:"calendar",label:"캘린더",emoji:"📅"}].map(n => (
-              <button key={n.id} onClick={() => navigateTo(n.id as any)}
-                style={{ flex:1, border:"none", background:"none", cursor:"pointer", display:"flex", flexDirection:"column", alignItems:"center", gap:3, fontFamily:"inherit", padding:"6px 0", WebkitTapHighlightColor:"transparent", outline:"none" }}>
-                <span style={{ fontSize:22, filter: view===n.id ? `drop-shadow(0 0 4px ${F.accent}80)` : "none", transition:"filter 0.2s" }}>{n.emoji}</span>
+              <button key={n.id}
+                onClick={() => {
+                  if (n.id === "home" && view === "home") {
+                    // 이미 홈 → 스크롤 상단으로
+                    homeScrollRef.current?.scrollTo({ top:0, behavior:"smooth" });
+                  } else {
+                    navigateTo(n.id as any);
+                  }
+                }}
+                style={{ flex:1, border:"none", background:"none", cursor:"pointer", display:"flex", flexDirection:"column", alignItems:"center", gap:2, fontFamily:"inherit", padding:"4px 0", WebkitTapHighlightColor:"transparent", outline:"none" }}>
+                <span style={{ fontSize:20, filter:view===n.id?`drop-shadow(0 0 4px ${F.accent}80)`:"none", transition:"filter 0.2s" }}>{n.emoji}</span>
                 <span style={{ fontSize:10, color:view===n.id?F.accent:F.textMut, fontWeight:view===n.id?700:400, transition:"color 0.2s" }}>{n.label}</span>
               </button>
             ))}
             {/* FAB */}
             <div style={{ flex:1, display:"flex", justifyContent:"center", alignItems:"center" }}>
               <button onClick={() => { reset(); navigateTo("add"); }}
-                style={{ width:52, height:52, borderRadius:"50%", background:F.accent, border:"none", color:"#fff", fontSize:28, cursor:"pointer", boxShadow:"0 4px 18px rgba(123,97,255,0.4)", display:"flex", alignItems:"center", justifyContent:"center", marginBottom:6, transition:"transform 0.15s" }}
+                style={{ width:48, height:48, borderRadius:"50%", background:F.accent, border:"none", color:"#fff", fontSize:26, cursor:"pointer", boxShadow:`0 4px 16px ${F.accent}50`, display:"flex", alignItems:"center", justifyContent:"center", marginBottom:4, transition:"transform 0.15s", WebkitTapHighlightColor:"transparent", outline:"none" }}
                 onMouseEnter={e => (e.currentTarget.style.transform="scale(1.1)")}
                 onMouseLeave={e => (e.currentTarget.style.transform="")}>
                 +
@@ -1048,8 +1075,8 @@ export default function Home() {
             </div>
             {[{id:"category",label:"통계",emoji:"📊"},{id:"more",label:"더보기",emoji:"···"}].map(n => (
               <button key={n.id} onClick={() => navigateTo(n.id as any)}
-                style={{ flex:1, border:"none", background:"none", cursor:"pointer", display:"flex", flexDirection:"column", alignItems:"center", gap:3, fontFamily:"inherit", padding:"6px 0", WebkitTapHighlightColor:"transparent", outline:"none" }}>
-                <span style={{ fontSize:22, filter: view===n.id ? `drop-shadow(0 0 4px ${F.accent}80)` : "none", transition:"filter 0.2s" }}>{n.emoji}</span>
+                style={{ flex:1, border:"none", background:"none", cursor:"pointer", display:"flex", flexDirection:"column", alignItems:"center", gap:2, fontFamily:"inherit", padding:"4px 0", WebkitTapHighlightColor:"transparent", outline:"none" }}>
+                <span style={{ fontSize:20, filter:view===n.id?`drop-shadow(0 0 4px ${F.accent}80)`:"none", transition:"filter 0.2s" }}>{n.emoji}</span>
                 <span style={{ fontSize:10, color:view===n.id?F.accent:F.textMut, fontWeight:view===n.id?700:400, transition:"color 0.2s" }}>{n.label}</span>
               </button>
             ))}
