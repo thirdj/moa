@@ -16,17 +16,18 @@ interface Suggestion {
   publishedDate?: string; category?: string;
 }
 
-// ── Design tokens ─────────────────────────────────────────────────
+// ── Design tokens — Modern Minimal ────────────────────────────────
 const F = {
-  bg:      "#F7F7FB",
+  bg:      "#FFFFFF",
   white:   "#FFFFFF",
-  border:  "#F0F0F5",
-  text:    "#1A1A2E",
-  textSub: "#666680",
-  textMut: "#AAAABC",
-  accent:  "#7B61FF",
-  shadow:  "0 2px 12px rgba(0,0,0,0.07)",
-  shadowMd:"0 4px 20px rgba(0,0,0,0.10)",
+  border:  "#F2F2F2",
+  text:    "#111111",
+  textSub: "#555555",
+  textMut: "#999999",
+  accent:  "#111111",
+  accentColor: "#7B61FF",
+  shadow:  "0 1px 4px rgba(0,0,0,0.06)",
+  shadowMd:"0 4px 16px rgba(0,0,0,0.08)",
 };
 
 // ── Categories ─────────────────────────────────────────────────────
@@ -34,7 +35,7 @@ const CATS = [
   { id:"book",       label:"책",          emoji:"📚", color:"#7B61FF" },
   { id:"movie",      label:"영화",        emoji:"🎬", color:"#FF6B6B" },
   { id:"exhibition", label:"전시",        emoji:"🖼️", color:"#FFB347" },
-  { id:"musical",    label:"공연/뮤지컬", emoji:"🎭", color:"#FF69B4" },
+  { id:"musical",    label:"공연",        emoji:"🎭", color:"#FF69B4" },
   { id:"concert",    label:"콘서트",      emoji:"🎵", color:"#2DCBA0" },
 ];
 const catOf = (id: string) => CATS.find(c => c.id === id) ?? CATS[0];
@@ -126,7 +127,7 @@ function DatePicker({ value, onChange, min, placeholder = "날짜 선택", disab
       <button
         type="button"
         onClick={() => { if(!disabled) setOpen(o => !o); }}
-        style={{ ...flatInput as any, display:"flex", alignItems:"center", justifyContent:"space-between", cursor:disabled?"default":"pointer", opacity:disabled?0.35:1, border:`1.5px solid ${open ? F.accent : F.border}`, background:F.bg, textAlign:"left" }}>
+        style={{ ...flatInput as any, display:"flex", alignItems:"center", justifyContent:"space-between", cursor:disabled?"default":"pointer", opacity:disabled?0.35:1, border:`1.5px solid ${open ? F.accentColor : F.border}`, background:F.bg, textAlign:"left" }}>
         <span style={{ color: value ? F.text : F.textMut, fontSize:15 }}>
           {value ? formatDate(value) : placeholder}
         </span>
@@ -149,7 +150,7 @@ function DatePicker({ value, onChange, min, placeholder = "날짜 선택", disab
           {/* 요일 헤더 */}
           <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", marginBottom:4 }}>
             {["일","월","화","수","목","금","토"].map((d,i) => (
-              <div key={d} style={{ textAlign:"center", fontSize:10, fontWeight:600, color:i===0?"#FF6B6B":i===6?F.accent:F.textMut, padding:"2px 0" }}>{d}</div>
+              <div key={d} style={{ textAlign:"center", fontSize:10, fontWeight:600, color:i===0?"#FF6B6B":i===6?F.accentColor:F.textMut, padding:"2px 0" }}>{d}</div>
             ))}
           </div>
 
@@ -164,7 +165,7 @@ function DatePicker({ value, onChange, min, placeholder = "날짜 선택", disab
               const isToday = ds === today;
               return (
                 <button key={d} type="button" onClick={() => select(d)} disabled={dis}
-                  style={{ width:"100%", aspectRatio:"1", borderRadius:"50%", border:"none", cursor:dis?"default":"pointer", fontFamily:"inherit", fontSize:13, fontWeight:sel||isToday?700:400, background:sel?F.accent:isToday?`${F.accent}18`:"transparent", color:sel?"#fff":dis?F.textMut:isToday?F.accent:F.text, opacity:dis?0.35:1, transition:"all 0.1s" }}>
+                  style={{ width:"100%", aspectRatio:"1", borderRadius:"50%", border:"none", cursor:dis?"default":"pointer", fontFamily:"inherit", fontSize:13, fontWeight:sel||isToday?700:400, background:sel?F.accentColor:isToday?`${F.accentColor}18`:"transparent", color:sel?"#fff":dis?F.textMut:isToday?F.accentColor:F.text, opacity:dis?0.35:1, transition:"all 0.1s" }}>
                   {d}
                 </button>
               );
@@ -174,7 +175,7 @@ function DatePicker({ value, onChange, min, placeholder = "날짜 선택", disab
           {/* 오늘 바로가기 */}
           <div style={{ textAlign:"center", marginTop:8, paddingTop:8, borderTop:`1px solid ${F.border}` }}>
             <button type="button" onClick={() => { onChange(today); setOpen(false); }}
-              style={{ background:"none", border:"none", fontSize:12, color:F.accent, cursor:"pointer", fontWeight:600 }}>오늘</button>
+              style={{ background:"none", border:"none", fontSize:12, color:F.accentColor, cursor:"pointer", fontWeight:600 }}>오늘</button>
           </div>
         </div>
       )}
@@ -414,7 +415,7 @@ export default function Home() {
   function BackBtn() {
     return (
       <button onClick={() => navigateTo(prevView)}
-        style={{ display:"flex", alignItems:"center", gap:4, background:F.accent, border:"none", borderRadius:10, padding:"7px 14px 7px 10px", cursor:"pointer", fontFamily:"inherit", color:"#fff", fontWeight:700, fontSize:14, boxShadow:"0 2px 8px rgba(123,97,255,0.3)" }}>
+        style={{ display:"flex", alignItems:"center", gap:4, background:F.accentColor, border:"none", borderRadius:10, padding:"7px 14px 7px 10px", cursor:"pointer", fontFamily:"inherit", color:"#fff", fontWeight:700, fontSize:14, boxShadow:"0 2px 8px rgba(123,97,255,0.3)" }}>
         <span style={{ fontSize:20, lineHeight:1 }}>‹</span>
         <span>뒤로</span>
       </button>
@@ -438,73 +439,76 @@ export default function Home() {
         {/* ══ HOME ══════════════════════════════════════════════════ */}
         {view==="home" && (
           <div ref={homeScrollRef} style={screenWrap}>
-            <div style={{ padding:"20px 20px 10px", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-              <div>
-                <p style={{ fontSize:11, color:F.textMut, letterSpacing:2, margin:"0 0 4px" }}>MY CULTURE LOG</p>
-                <h1 style={{ fontSize:22, fontWeight:800, color:F.text, margin:0 }}>나의 문화 기록</h1>
-              </div>
+            <div style={{ padding:"20px 20px 12px", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+              <h1 style={{ fontSize:24, fontWeight:800, color:F.text, margin:0, letterSpacing:-0.5 }}>기록</h1>
               {session?.user?.image && (
-                <img src={session?.user?.image} style={{ width:34, height:34, borderRadius:"50%", border:`2px solid ${F.accent}30` }} />
+                <img src={session.user.image} style={{ width:32, height:32, borderRadius:"50%", border:`1.5px solid ${F.border}` }} />
               )}
             </div>
 
             {/* 카테고리 필터 */}
-            <div style={{ padding:"0 16px 10px", display:"flex", gap:8, overflowX:"auto" }}>
+            <div style={{ padding:"0 20px 12px", display:"flex", gap:8, overflowX:"auto" }}>
               {[{id:"all",label:"전체"},...CATS].map(c => (
                 <button key={c.id} onClick={() => setFilterCat(c.id)}
-                  style={{ padding:"6px 14px", borderRadius:20, border:"none", background:filterCat===c.id?F.accent:F.white, color:filterCat===c.id?"#fff":F.textSub, fontWeight:filterCat===c.id?700:500, fontSize:12, cursor:"pointer", whiteSpace:"nowrap", fontFamily:"inherit", flexShrink:0, boxShadow:filterCat===c.id?"none":F.shadow, transition:"all 0.2s", WebkitTapHighlightColor:"transparent", outline:"none" }}>
+                  style={{ padding:"5px 14px", borderRadius:20, border:`1px solid ${filterCat===c.id ? F.text : F.border}`, background:filterCat===c.id ? F.text : F.white, color:filterCat===c.id ? "#fff" : F.textSub, fontWeight:filterCat===c.id ? 600 : 400, fontSize:12, cursor:"pointer", whiteSpace:"nowrap", fontFamily:"inherit", flexShrink:0, transition:"all 0.15s", WebkitTapHighlightColor:"transparent", outline:"none" }}>
                   {c.label}
                 </button>
               ))}
             </div>
 
             {/* 정렬 */}
-            <div style={{ display:"flex", justifyContent:"flex-end", padding:"0 18px 10px", gap:6 }}>
+            <div style={{ display:"flex", justifyContent:"flex-end", padding:"0 20px 12px", gap:6 }}>
               {([["latest","최신순"],["date","관람순"],["rating","별점순"]] as const).map(([val, label]) => (
                 <button key={val} onClick={() => setSortBy(val)}
-                  style={{ padding:"4px 10px", borderRadius:12, border:`1px solid ${sortBy===val?F.accent:F.border}`, background:sortBy===val?`${F.accent}10`:F.white, color:sortBy===val?F.accent:F.textMut, fontSize:11, fontWeight:sortBy===val?700:400, cursor:"pointer", fontFamily:"inherit", transition:"all 0.15s", WebkitTapHighlightColor:"transparent", outline:"none" }}>
+                  style={{ padding:"3px 10px", borderRadius:10, border:`1px solid ${sortBy===val ? F.text : F.border}`, background:sortBy===val ? F.text : "transparent", color:sortBy===val ? "#fff" : F.textMut, fontSize:11, fontWeight:sortBy===val ? 600 : 400, cursor:"pointer", fontFamily:"inherit", transition:"all 0.15s", WebkitTapHighlightColor:"transparent", outline:"none" }}>
                   {label}
                 </button>
               ))}
             </div>
 
-            <div style={{ padding:"0 16px", display:"flex", flexDirection:"column", gap:10 }}>
+            <div style={{ padding:"0 16px", display:"flex", flexDirection:"column", gap:1 }}>
               {loading ? (
                 <div style={{ textAlign:"center", padding:60, color:F.textMut, fontSize:14 }}>불러오는 중...</div>
               ) : records.length===0 ? (
-                <div style={{ textAlign:"center", padding:"60px 0" }}>
+                <div style={{ textAlign:"center", padding:"80px 0" }}>
                   <div style={{ fontSize:48, marginBottom:12 }}>📭</div>
                   <p style={{ color:F.textMut, fontSize:14 }}>아직 기록이 없어요</p>
                   <p style={{ color:F.textMut, fontSize:12, marginTop:4, opacity:0.7 }}>+ 버튼으로 첫 기록을 남겨보세요</p>
                 </div>
               ) : filtered.length===0 ? (
-                <div style={{ textAlign:"center", padding:"60px 0" }}>
+                <div style={{ textAlign:"center", padding:"80px 0" }}>
                   <div style={{ fontSize:40, marginBottom:12 }}>🗂️</div>
                   <p style={{ color:F.textMut, fontSize:14 }}>해당 카테고리의 기록이 없어요</p>
                 </div>
               ) : filtered.map(rec => {
                 const cat = catOf(rec.category);
                 return (
-                  <Card key={rec.id} onClick={() => openDetail(rec, "home")}>
-                    <div style={{ display:"flex", alignItems:"center", gap:12, overflow:"hidden" }}>
-                      {rec.thumbnail
-                        ? <img src={rec.thumbnail} style={{ width:54, height:72, objectFit:"cover", borderRadius:10, flexShrink:0, boxShadow:"0 2px 8px rgba(0,0,0,0.12)" }} />
-                        : <div style={{ width:54, height:72, borderRadius:10, background:`${cat.color}15`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:26, flexShrink:0 }}>{cat.emoji}</div>
-                      }
-                      <div style={{ flex:1, minWidth:0, overflow:"hidden" }}>
-                        <div style={{ marginBottom:4 }}><CatDot id={rec.category} /></div>
-                        <p style={{ fontSize:16, fontWeight:700, color:F.text, margin:"0 0 5px", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{rec.title}</p>
-                        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-                          <div style={{ display:"flex", alignItems:"center", gap:5 }}>
-                            <Stars v={Number(rec.rating)} size={13} />
-                            <span style={{ fontSize:11, color:F.textSub, fontWeight:600 }}>{Number(rec.rating).toFixed(1)}</span>
-                          </div>
-                          <span style={{ fontSize:11, color:F.textMut, flexShrink:0 }}>{formatDate(rec.date)}</span>
+                  <div key={rec.id} onClick={() => openDetail(rec, "home")}
+                    style={{ display:"flex", alignItems:"flex-start", gap:14, padding:"16px 0", borderBottom:`1px solid ${F.border}`, cursor:"pointer" }}>
+                    {/* 썸네일 */}
+                    {rec.thumbnail
+                      ? <img src={rec.thumbnail} style={{ width:56, height:72, objectFit:"cover", borderRadius:8, flexShrink:0 }} />
+                      : <div style={{ width:56, height:72, borderRadius:8, background:`${cat.color}12`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:24, flexShrink:0 }}>{cat.emoji}</div>
+                    }
+                    <div style={{ flex:1, minWidth:0, height:72, display:"flex", flexDirection:"column", justifyContent:"space-between", paddingTop:2, paddingBottom:2 }}>
+                      <div>
+                        {/* 카테고리 + 날짜 */}
+                        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:4 }}>
+                          <span style={{ fontSize:11, color:cat.color, fontWeight:600, letterSpacing:0.3 }}>{cat.label.toUpperCase()}</span>
+                          <span style={{ fontSize:11, color:F.textMut }}>{formatDate(rec.date)}</span>
                         </div>
-                        {rec.review && <p style={{ fontSize:12, color:F.textSub, margin:"4px 0 0", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{rec.review}</p>}
+                        {/* 제목 */}
+                        <p style={{ fontSize:15, fontWeight:700, color:F.text, margin:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", lineHeight:1.3 }}>{rec.title}</p>
+                      </div>
+                      <div>
+                        {/* 별점 + 리뷰 */}
+                        <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                          <Stars v={Number(rec.rating)} size={12} />
+                          {rec.review && <span style={{ fontSize:12, color:F.textMut, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{rec.review}</span>}
+                        </div>
                       </div>
                     </div>
-                  </Card>
+                  </div>
                 );
               })}
             </div>
@@ -517,7 +521,7 @@ export default function Home() {
             {/* 헤더 — 여백 줄임 */}
             <div style={{ display:"flex", alignItems:"center", padding:"16px 20px 14px", borderBottom:`1px solid ${F.border}`, gap:12 }}>
               <button onClick={() => { const wasEdit = !!editId; reset(); navigateTo(wasEdit ? "detail" : "home"); }}
-                style={{ display:"flex", alignItems:"center", gap:4, background:F.accent, border:"none", borderRadius:10, padding:"7px 12px", cursor:"pointer", color:"#fff", fontWeight:700, fontSize:14, fontFamily:"inherit" }}>
+                style={{ display:"flex", alignItems:"center", gap:4, background:F.accentColor, border:"none", borderRadius:10, padding:"7px 12px", cursor:"pointer", color:"#fff", fontWeight:700, fontSize:14, fontFamily:"inherit" }}>
                 <span style={{ fontSize:20, lineHeight:1 }}>‹</span>
                 <span>뒤로</span>
               </button>
@@ -550,7 +554,7 @@ export default function Home() {
 
               {/* 제목 */}
               <p style={sectionLabel}>
-                제목 {form.category && <span style={{ color:F.accent, textTransform:"none", fontWeight:400, fontSize:10 }}>— {activeCat.id==="book"||activeCat.id==="movie" ? "검색 or 내 기록 자동완성" : "내 기록 자동완성"}</span>}
+                제목 {form.category && <span style={{ color:F.accentColor, textTransform:"none", fontWeight:400, fontSize:10 }}>— {activeCat.id==="book"||activeCat.id==="movie" ? "검색 or 내 기록 자동완성" : "내 기록 자동완성"}</span>}
               </p>
               <div style={{ position:"relative", marginBottom:6 }}>
                 <input value={titleQuery}
@@ -561,7 +565,7 @@ export default function Home() {
                   disabled={!form.category}
                   style={{ ...flatInput, paddingRight:40 }}
                 />
-                {acLoading && <div style={{ position:"absolute", right:14, top:"50%", transform:"translateY(-50%)", width:14, height:14, border:`2px solid ${F.border}`, borderTopColor:F.accent, borderRadius:"50%", animation:"spin 0.6s linear infinite" }} />}
+                {acLoading && <div style={{ position:"absolute", right:14, top:"50%", transform:"translateY(-50%)", width:14, height:14, border:`2px solid ${F.border}`, borderTopColor:F.accentColor, borderRadius:"50%", animation:"spin 0.6s linear infinite" }} />}
               </div>
 
               {/* 자동완성 드롭다운 */}
@@ -569,15 +573,15 @@ export default function Home() {
                 {showSug && suggestions.length>0 && (
                   <div style={{ position:"absolute", top:0, left:0, right:0, background:F.white, borderRadius:16, boxShadow:F.shadowMd, border:`1px solid ${F.border}`, maxHeight:240, overflowY:"auto", zIndex:50 }}>
                     {suggestions.filter(s => s.source==="history").length>0 && <>
-                      <div style={{ padding:"8px 14px 2px", fontSize:10, color:F.accent, fontWeight:700, letterSpacing:1 }}>내 기록</div>
+                      <div style={{ padding:"8px 14px 2px", fontSize:10, color:F.accentColor, fontWeight:700, letterSpacing:1 }}>내 기록</div>
                       {suggestions.filter(s => s.source==="history").map(s => (
                         <div key={s.id} onClick={() => pickSug(s)}
                           style={{ display:"flex", alignItems:"center", gap:10, padding:"9px 14px", cursor:"pointer", borderBottom:`1px solid ${F.border}` }}
-                          onMouseEnter={e => (e.currentTarget.style.background=`${F.accent}08`)}
+                          onMouseEnter={e => (e.currentTarget.style.background=`${F.accentColor}08`)}
                           onMouseLeave={e => (e.currentTarget.style.background="")}>
                           <span style={{ fontSize:15 }}>{s.type==="venue"?"📍":s.type==="author"?"👤":"🕒"}</span>
                           <span style={{ fontSize:13, color:F.text, fontWeight:500 }}>{s.title}</span>
-                          <span style={{ marginLeft:"auto", fontSize:10, color:F.accent, background:`${F.accent}12`, padding:"2px 6px", borderRadius:8, flexShrink:0 }}>내 기록</span>
+                          <span style={{ marginLeft:"auto", fontSize:10, color:F.accentColor, background:`${F.accentColor}12`, padding:"2px 6px", borderRadius:8, flexShrink:0 }}>내 기록</span>
                         </div>
                       ))}
                     </>}
@@ -595,7 +599,7 @@ export default function Home() {
                           <div style={{ minWidth:0 }}>
                             <p style={{ fontSize:13, fontWeight:600, color:F.text, margin:"0 0 2px", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{s.title}</p>
                             {s.author && <p style={{ fontSize:11, color:F.textMut, margin:0 }}>
-                              {(s as any).description && <span style={{ color:F.accent, marginRight:4 }}>[{(s as any).description}]</span>}
+                              {(s as any).description && <span style={{ color:F.accentColor, marginRight:4 }}>[{(s as any).description}]</span>}
                               {s.author}{s.publishedDate ? ` · ${s.publishedDate.slice(0,4)}` : ""}
                             </p>}
                           </div>
@@ -608,7 +612,7 @@ export default function Home() {
 
               {/* 선택 프리뷰 */}
               {form.thumbnail && !showSug && (
-                <div style={{ display:"flex", alignItems:"center", gap:12, padding:"10px 14px", background:`${F.accent}08`, borderRadius:14, marginBottom:14, border:`1.5px solid ${F.accent}25` }}>
+                <div style={{ display:"flex", alignItems:"center", gap:12, padding:"10px 14px", background:`${F.accentColor}08`, borderRadius:14, marginBottom:14, border:`1.5px solid ${F.accentColor}25` }}>
                   <img src={form.thumbnail} style={{ width:34, height:48, objectFit:"cover", borderRadius:8 }} />
                   <div style={{ flex:1, minWidth:0 }}>
                     <p style={{ fontSize:13, fontWeight:700, margin:"0 0 2px", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", color:F.text }}>{form.title}</p>
@@ -633,7 +637,7 @@ export default function Home() {
               ) : (
                 /* 책 외 — 커스텀 달력 */
                 <>
-                  <p style={{ ...sectionLabel, marginTop:4 }}>날짜</p>
+                  <p style={{ ...sectionLabel, margin:"4px 0 10px" }}>날짜</p>
                   <div style={{ marginBottom:18 }}>
                     <DatePicker
                       value={form.date}
@@ -685,7 +689,7 @@ export default function Home() {
             {/* 저장 버튼 */}
             <div style={{ position:"fixed", bottom:0, left:"50%", transform:"translateX(-50%)", width:"100%", maxWidth:390, padding:"10px 20px 24px", background:F.bg, borderTop:`1px solid ${F.border}`, zIndex:20 }}>
               <button onClick={save} disabled={!canSave||saving}
-                style={{ width:"100%", padding:"15px", borderRadius:16, border:"none", background:canSave?F.accent:"#E5E5F0", color:canSave?"#fff":F.textMut, fontSize:16, fontWeight:700, cursor:canSave?"pointer":"default", fontFamily:"inherit", boxShadow:canSave?"0 4px 16px rgba(123,97,255,0.35)":"none", transition:"all 0.2s" }}>
+                style={{ width:"100%", padding:"15px", borderRadius:16, border:"none", background:canSave?F.accentColor:"#E5E5F0", color:canSave?"#fff":F.textMut, fontSize:16, fontWeight:700, cursor:canSave?"pointer":"default", fontFamily:"inherit", boxShadow:canSave?"0 4px 16px rgba(123,97,255,0.35)":"none", transition:"all 0.2s" }}>
                 {saving ? "저장 중..." : "저장하기"}
               </button>
             </div>
@@ -696,123 +700,94 @@ export default function Home() {
         {view==="detail" && selected && (() => {
           const cat = catOf(selected.category);
           return (
-            <div style={screenWrap}>
-              <div style={{ padding:"16px 20px 14px" }}>
-                <BackBtn />
+            <div style={{ flex:1, overflowY:"auto", paddingBottom:90, background:F.white }}>
+
+              {/* 이미지 풀스크린 상단 */}
+              <div style={{ position:"relative", width:"100%", aspectRatio:"3/2", background:cat.color+"15" }}>
+                {selected.thumbnail
+                  ? <img src={selected.thumbnail} style={{ width:"100%", height:"100%", objectFit:"cover", display:"block" }} />
+                  : <div style={{ width:"100%", height:"100%", display:"flex", alignItems:"center", justifyContent:"center", fontSize:72 }}>{cat.emoji}</div>
+                }
+                <div style={{ position:"absolute", top:0, left:0, right:0, height:80, background:"linear-gradient(to bottom, rgba(0,0,0,0.4), transparent)" }} />
+                <button onClick={() => navigateTo(prevView)}
+                  style={{ position:"absolute", top:16, left:16, width:36, height:36, borderRadius:"50%", background:"rgba(255,255,255,0.92)", border:"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", backdropFilter:"blur(8px)", boxShadow:"0 2px 8px rgba(0,0,0,0.15)", WebkitTapHighlightColor:"transparent" }}>
+                  <span style={{ fontSize:20, color:F.text, lineHeight:1 }}>‹</span>
+                </button>
               </div>
 
-              {/* Hero */}
-              <Card style={{ margin:"0 16px 16px" }}>
-                <div style={{ display:"flex", gap:16, alignItems:"flex-start" }}>
-                  {selected.thumbnail
-                    ? <img src={selected.thumbnail} style={{ width:100, height:140, objectFit:"cover", borderRadius:14, boxShadow:"0 6px 20px rgba(0,0,0,0.15)", flexShrink:0 }} />
-                    : <div style={{ width:100, height:140, borderRadius:14, background:`${cat.color}15`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:44, flexShrink:0 }}>{cat.emoji}</div>
-                  }
-                  <div style={{ flex:1, paddingTop:4 }}>
-                    <div style={{ marginBottom:8 }}><CatDot id={selected.category} /></div>
+              {/* 카테고리 + 날짜 */}
+              <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"14px 20px 6px" }}>
+                <span style={{ fontSize:11, color:cat.color, fontWeight:700, letterSpacing:0.3, background:cat.color+"12", padding:"4px 10px", borderRadius:20 }}>{cat.emoji} {cat.label}</span>
+                <span style={{ fontSize:12, color:F.textMut }}>{selected.category==="book" ? (selected.date_start ? formatDate(selected.date_start) : formatDate(selected.date)) : formatDate(selected.date)}</span>
+              </div>
 
-                    {/* 제목 — 책/영화는 외부 링크 */}
-                    {(selected.category==="book" || selected.category==="movie") ? (
-                      <a href={
-                          selected.category==="book"
-                            ? `https://www.google.com/search?q=${encodeURIComponent(selected.title+" "+(selected.author??""))}&tbm=bks`
-                            : `https://www.themoviedb.org/search?query=${encodeURIComponent(selected.title)}`
-                        }
-                        target="_blank" rel="noopener noreferrer" style={{ textDecoration:"none" }}>
-                        <h2 style={{ fontSize:20, fontWeight:800, color:F.accent, margin:"0 0 4px", lineHeight:1.3, wordBreak:"keep-all", borderBottom:`1.5px solid ${F.accent}30`, paddingBottom:2, display:"inline-block" }}>
-                          {selected.title} <span style={{ fontSize:12, opacity:0.6 }}>↗</span>
-                        </h2>
-                        <p style={{ fontSize:10, color:F.textMut, margin:"0 0 8px" }}>
-                          {selected.category==="book" ? "Google Books에서 보기" : "TMDB에서 보기"}
-                        </p>
-                      </a>
-                    ) : (
-                      <h2 style={{ fontSize:20, fontWeight:800, color:F.text, margin:"0 0 10px", lineHeight:1.3, wordBreak:"keep-all" }}>{selected.title}</h2>
-                    )}
+              {/* 제목 */}
+              <div style={{ padding:"0 20px 10px" }}>
+                {(selected.category==="book" || selected.category==="movie") ? (
+                  <a href={selected.category==="book" ? `https://www.google.com/search?q=${encodeURIComponent(selected.title+" "+(selected.author??""))}&tbm=bks` : `https://www.themoviedb.org/search?query=${encodeURIComponent(selected.title)}`}
+                    target="_blank" rel="noopener noreferrer" style={{ textDecoration:"none" }}>
+                    <h1 style={{ fontSize:22, fontWeight:800, color:F.text, margin:"0 0 2px", lineHeight:1.25, wordBreak:"keep-all" }}>{selected.title} <span style={{ fontSize:14, color:F.accentColor }}>↗</span></h1>
+                    <p style={{ fontSize:11, color:F.textMut, margin:0 }}>{selected.category==="book" ? "Google Books에서 보기" : "TMDB에서 보기"}</p>
+                  </a>
+                ) : (
+                  <h1 style={{ fontSize:22, fontWeight:800, color:F.text, margin:0, lineHeight:1.25, wordBreak:"keep-all" }}>{selected.title}</h1>
+                )}
+              </div>
 
-                    {selected.author && <div style={{ display:"flex", alignItems:"center", gap:5, marginBottom:5 }}><span style={{ fontSize:12, color:F.textMut }}>👤</span><span style={{ fontSize:13, color:F.textSub }}>{selected.author}</span></div>}
-                    {selected.venue  && <div style={{ display:"flex", alignItems:"center", gap:5, marginBottom:5 }}><span style={{ fontSize:12, color:F.textMut }}>📍</span><span style={{ fontSize:13, color:F.textSub }}>{selected.venue}</span></div>}
+              {/* 별점 */}
+              <div style={{ padding:"0 20px 14px", display:"flex", alignItems:"center", gap:8 }}>
+                <Stars v={Number(selected.rating)} size={20} />
+                <span style={{ fontSize:16, fontWeight:700, color:F.text }}>{Number(selected.rating).toFixed(1)}</span>
+              </div>
 
-                    {selected.category==="book" ? (
-                      <div style={{ display:"flex", flexDirection:"column", gap:5 }}>
-                        {/* 읽기 기간 */}
-                        {(selected.date_start || selected.date_end) && (
-                          <div style={{ display:"flex", alignItems:"center", gap:5 }}>
-                            <span style={{ fontSize:12, color:F.textMut }}>📖</span>
-                            <span style={{ fontSize:12, color:F.textMut }}>
-                              {selected.date_start ? formatDate(selected.date_start) : "?"}
-                              {(selected.finished || selected.date_end) && (
-                                <> → {selected.date_end ? formatDate(selected.date_end) : "읽는 중"}</>
-                              )}
-                            </span>
-                          </div>
-                        )}
-                        {/* 완독 뱃지 */}
-                        {selected.finished ? (
-                          <div style={{ display:"inline-flex", alignItems:"center", gap:4, background:`${F.accent}12`, padding:"3px 10px", borderRadius:20, width:"fit-content" }}>
-                            <span style={{ fontSize:11 }}>✓</span>
-                            <span style={{ fontSize:11, color:F.accent, fontWeight:700 }}>완독</span>
-                          </div>
-                        ) : selected.date_start ? (
-                          <div style={{ display:"inline-flex", alignItems:"center", gap:4, background:"#FFF3E0", padding:"3px 10px", borderRadius:20, width:"fit-content" }}>
-                            <span style={{ fontSize:11 }}>📚</span>
-                            <span style={{ fontSize:11, color:"#FF9800", fontWeight:700 }}>읽는 중</span>
-                          </div>
-                        ) : null}
-                      </div>
-                    ) : (
-                      /* 책 외 — 날짜 표시 */
-                      <div style={{ display:"flex", alignItems:"center", gap:5 }}>
-                        <span style={{ fontSize:12, color:F.textMut }}>📅</span>
-                        <span style={{ fontSize:12, color:F.textMut }}>{formatDate(selected.date)}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </Card>
+              <div style={{ height:1, background:F.border }} />
 
-              {/* 완독했어요 버튼 — 책이고 아직 완독 안 한 경우만 */}
-              {selected.category==="book" && !selected.finished && (
-                <div style={{ margin:"0 16px 16px" }}>
-                  <button
-                    onClick={async () => {
-                      const today = todayStr();
-                      const updated = { ...selected, finished:true, date_end:today };
-                      await fetch(`/api/records/${selected.id}`, {
-                        method:"PUT",
-                        headers:{"Content-Type":"application/json"},
-                        body:JSON.stringify({ finished:true, date_end:today }),
-                      });
-                      setSelected(updated);
-                      await fetchRecords();
-                    }}
-                    style={{ width:"100%", padding:"14px", borderRadius:14, border:`2px solid ${F.accent}`, background:`${F.accent}08`, color:F.accent, fontWeight:700, fontSize:15, cursor:"pointer", fontFamily:"inherit", display:"flex", alignItems:"center", justifyContent:"center", gap:8, transition:"all 0.2s" }}
-                    onMouseEnter={e => { e.currentTarget.style.background=F.accent; e.currentTarget.style.color="#fff"; }}
-                    onMouseLeave={e => { e.currentTarget.style.background=`${F.accent}08`; e.currentTarget.style.color=F.accent; }}>
-                    <span>📖</span>
-                    <span>완독했어요!</span>
-                  </button>
-                </div>
-              )}
-
-              {/* 별점 + 리뷰 */}
-              <Card style={{ margin:"0 16px 16px" }}>
-                <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:selected.review?14:0 }}>
-                  <Stars v={Number(selected.rating)} size={24} />
-                  <span style={{ fontSize:20, fontWeight:800, color:F.text }}>{Number(selected.rating).toFixed(1)}</span>
-                </div>
-                {selected.review && (
-                  <div style={{ paddingTop:12, borderTop:`1px solid ${F.border}` }}>
-                    <p style={{ fontSize:11, fontWeight:700, color:F.textMut, margin:"0 0 6px", letterSpacing:0.5 }}>한 줄 리뷰</p>
-                    <p style={{ fontSize:14, color:F.textSub, lineHeight:1.8, margin:0 }}>"{selected.review}"</p>
+              {/* 메타 정보 */}
+              <div style={{ padding:"14px 20px", display:"flex", flexDirection:"column", gap:10 }}>
+                {selected.author && <div style={{ display:"flex", alignItems:"center", gap:10 }}><span style={{ fontSize:13, color:F.textMut }}>👤</span><span style={{ fontSize:14, color:F.textSub }}>{selected.author}</span></div>}
+                {selected.venue  && <div style={{ display:"flex", alignItems:"center", gap:10 }}><span style={{ fontSize:13, color:F.textMut }}>📍</span><span style={{ fontSize:14, color:F.textSub }}>{selected.venue}</span></div>}
+                {selected.category==="book" && selected.date_start && (
+                  <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                    <span style={{ fontSize:13, color:F.textMut }}>📖</span>
+                    <span style={{ fontSize:14, color:F.textSub }}>{formatDate(selected.date_start)}{(selected.finished||selected.date_end) && <> → {selected.date_end ? formatDate(selected.date_end) : "읽는 중"}</>}</span>
                   </div>
                 )}
-              </Card>
+                {selected.category==="book" && (
+                  selected.finished
+                    ? <span style={{ fontSize:12, color:F.accentColor, fontWeight:700, background:F.accentColor+"12", padding:"4px 12px", borderRadius:20, width:"fit-content" }}>✓ 완독</span>
+                    : selected.date_start
+                      ? <span style={{ fontSize:12, color:"#FF9800", fontWeight:700, background:"#FFF3E0", padding:"4px 12px", borderRadius:20, width:"fit-content" }}>📚 읽는 중</span>
+                      : null
+                )}
+              </div>
+
+              {/* 리뷰 */}
+              {selected.review && <>
+                <div style={{ height:1, background:F.border }} />
+                <div style={{ padding:"14px 20px" }}>
+                  <p style={{ fontSize:11, fontWeight:700, color:F.textMut, margin:"0 0 6px", letterSpacing:0.5, textTransform:"uppercase" }}>한 줄 리뷰</p>
+                  <p style={{ fontSize:15, color:F.text, lineHeight:1.7, margin:0 }}>"{selected.review}"</p>
+                </div>
+              </>}
+
+              {/* 완독 버튼 */}
+              {selected.category==="book" && !selected.finished && <>
+                <div style={{ height:1, background:F.border }} />
+                <div style={{ padding:"14px 20px" }}>
+                  <button onClick={async () => { const today=todayStr(); const updated={...selected,finished:true,date_end:today}; await fetch(`/api/records/${selected.id}`,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({finished:true,date_end:today})}); setSelected(updated); await fetchRecords(); }}
+                    style={{ width:"100%", padding:"13px", borderRadius:12, border:`1.5px solid ${F.accentColor}`, background:"#fff", color:F.accentColor, fontWeight:700, fontSize:14, cursor:"pointer", fontFamily:"inherit", transition:"all 0.2s" }}
+                    onMouseEnter={e=>{e.currentTarget.style.background=F.accentColor;e.currentTarget.style.color="#fff";}}
+                    onMouseLeave={e=>{e.currentTarget.style.background="#fff";e.currentTarget.style.color=F.accentColor;}}>
+                    📖 완독했어요!
+                  </button>
+                </div>
+              </>}
 
               {/* 수정 / 삭제 */}
-              <div style={{ display:"flex", gap:12, padding:"0 16px" }}>
-                <button onClick={() => openEdit(selected)} style={{ flex:1, padding:14, borderRadius:14, border:`2px solid ${F.accent}`, background:F.white, color:F.accent, fontWeight:700, fontSize:15, cursor:"pointer", fontFamily:"inherit" }}>수정</button>
-                <button onClick={() => del(selected.id)} style={{ flex:1, padding:14, borderRadius:14, border:"none", background:"#FFF0F0", color:"#FF6B6B", fontWeight:700, fontSize:15, cursor:"pointer", fontFamily:"inherit" }}>삭제</button>
+              <div style={{ height:1, background:F.border }} />
+              <div style={{ display:"flex", gap:10, padding:"14px 20px" }}>
+                <button onClick={() => openEdit(selected)} style={{ flex:1, padding:"13px", borderRadius:12, border:`1px solid ${F.border}`, background:F.white, color:F.text, fontWeight:600, fontSize:14, cursor:"pointer", fontFamily:"inherit" }}>수정</button>
+                <button onClick={() => del(selected.id)} style={{ flex:1, padding:"13px", borderRadius:12, border:"none", background:"#FFF0F0", color:"#FF4444", fontWeight:600, fontSize:14, cursor:"pointer", fontFamily:"inherit" }}>삭제</button>
               </div>
             </div>
           );
@@ -835,7 +810,7 @@ export default function Home() {
                 <Card key={s.label}>
                   <div style={{ textAlign:"center" }}>
                     <p style={{ fontSize:22, margin:"0 0 4px" }}>{s.emoji}</p>
-                    <p style={{ fontSize:18, fontWeight:800, color:F.accent, margin:"0 0 2px" }}>{s.value}</p>
+                    <p style={{ fontSize:18, fontWeight:800, color:F.accentColor, margin:"0 0 2px" }}>{s.value}</p>
                     <p style={{ fontSize:10, color:F.textMut, margin:0 }}>{s.label}</p>
                   </div>
                 </Card>
@@ -886,7 +861,7 @@ export default function Home() {
                   return (
                     <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8 }}>
                       {[
-                        { label:"완독", value:finished, color:F.accent },
+                        { label:"완독", value:finished, color:F.accentColor },
                         { label:"읽는 중", value:reading, color:"#FF9800" },
                         { label:"미시작", value:notStarted, color:F.textMut },
                       ].map(s => (
@@ -944,7 +919,7 @@ export default function Home() {
             </div>
             <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", padding:"0 14px", marginBottom:4 }}>
               {["일","월","화","수","목","금","토"].map((d,i) => (
-                <div key={d} style={{ textAlign:"center", fontSize:11, fontWeight:600, color:i===0?"#FF6B6B":i===6?F.accent:F.textMut, padding:"4px 0" }}>{d}</div>
+                <div key={d} style={{ textAlign:"center", fontSize:11, fontWeight:600, color:i===0?"#FF6B6B":i===6?F.accentColor:F.textMut, padding:"4px 0" }}>{d}</div>
               ))}
             </div>
             <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", padding:"0 14px", gap:"4px 0" }}>
@@ -955,7 +930,7 @@ export default function Home() {
                 const isFuture=ds>todayStr();
                 return (
                   <div key={day} onClick={() => { if(!isFuture) setCalSelected(ds); }} style={{ display:"flex", flexDirection:"column", alignItems:"center", padding:"3px 0", cursor:isFuture?"default":"pointer" }}>
-                    <div style={{ width:32, height:32, borderRadius:"50%", display:"flex", alignItems:"center", justifyContent:"center", background:isSel?F.accent:isToday?`${F.accent}15`:"transparent", color:isSel?"#fff":isFuture?F.textMut:isToday?F.accent:F.text, fontSize:13, fontWeight:isToday||isSel?700:400, border:isToday&&!isSel?`1.5px solid ${F.accent}40`:"none", opacity:isFuture?0.3:1 }}>{day}</div>
+                    <div style={{ width:32, height:32, borderRadius:"50%", display:"flex", alignItems:"center", justifyContent:"center", background:isSel?F.accentColor:isToday?`${F.accentColor}15`:"transparent", color:isSel?"#fff":isFuture?F.textMut:isToday?F.accentColor:F.text, fontSize:13, fontWeight:isToday||isSel?700:400, border:isToday&&!isSel?`1.5px solid ${F.accentColor}40`:"none", opacity:isFuture?0.3:1 }}>{day}</div>
                     <div style={{ display:"flex", gap:2, marginTop:2 }}>
                       {recs.slice(0,3).map((r,idx) => <div key={idx} style={{ width:4, height:4, borderRadius:"50%", background:catOf(r.category).color }} />)}
                     </div>
@@ -999,7 +974,7 @@ export default function Home() {
                 <div style={{ display:"flex", alignItems:"center", gap:14 }}>
                   {session?.user?.image
                     ? <img src={session?.user?.image} style={{ width:52, height:52, borderRadius:"50%", boxShadow:F.shadow }} />
-                    : <div style={{ width:52,height:52,borderRadius:"50%",background:`${F.accent}15`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22 }}>👤</div>
+                    : <div style={{ width:52,height:52,borderRadius:"50%",background:`${F.accentColor}15`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22 }}>👤</div>
                   }
                   <div>
                     <p style={{ fontSize:16, fontWeight:700, color:F.text, margin:"0 0 3px" }}>{session?.user?.name}</p>
@@ -1016,7 +991,7 @@ export default function Home() {
               ].map(s => (
                 <Card key={s.label}>
                   <div style={{ textAlign:"center" }}>
-                    <p style={{ fontSize:18, fontWeight:800, color:F.accent, margin:"0 0 4px" }}>{s.value}</p>
+                    <p style={{ fontSize:18, fontWeight:800, color:F.accentColor, margin:"0 0 4px" }}>{s.value}</p>
                     <p style={{ fontSize:11, color:F.textMut, margin:0 }}>{s.label}</p>
                   </div>
                 </Card>
@@ -1052,23 +1027,18 @@ export default function Home() {
             {[{id:"home",label:"홈",emoji:"🏠"},{id:"calendar",label:"캘린더",emoji:"📅"}].map(n => (
               <button key={n.id}
                 onClick={() => {
-                  if (n.id === "home" && view === "home") {
-                    // 이미 홈 → 스크롤 상단으로
-                    homeScrollRef.current?.scrollTo({ top:0, behavior:"smooth" });
-                  } else {
-                    navigateTo(n.id as any);
-                  }
+                  if (n.id==="home" && view==="home") { homeScrollRef.current?.scrollTo({ top:0, behavior:"smooth" }); }
+                  else { navigateTo(n.id as any); }
                 }}
                 style={{ flex:1, border:"none", background:"none", cursor:"pointer", display:"flex", flexDirection:"column", alignItems:"center", gap:2, fontFamily:"inherit", padding:"4px 0", WebkitTapHighlightColor:"transparent", outline:"none" }}>
-                <span style={{ fontSize:20, filter:view===n.id?`drop-shadow(0 0 4px ${F.accent}80)`:"none", transition:"filter 0.2s" }}>{n.emoji}</span>
-                <span style={{ fontSize:10, color:view===n.id?F.accent:F.textMut, fontWeight:view===n.id?700:400, transition:"color 0.2s" }}>{n.label}</span>
+                <span style={{ fontSize:20, opacity:view===n.id?1:0.35, transition:"opacity 0.2s" }}>{n.emoji}</span>
+                <span style={{ fontSize:10, color:view===n.id?F.text:F.textMut, fontWeight:view===n.id?700:400, transition:"color 0.2s" }}>{n.label}</span>
               </button>
             ))}
-            {/* FAB */}
             <div style={{ flex:1, display:"flex", justifyContent:"center", alignItems:"center" }}>
               <button onClick={() => { reset(); navigateTo("add"); }}
-                style={{ width:48, height:48, borderRadius:"50%", background:F.accent, border:"none", color:"#fff", fontSize:26, cursor:"pointer", boxShadow:`0 4px 16px ${F.accent}50`, display:"flex", alignItems:"center", justifyContent:"center", marginBottom:4, transition:"transform 0.15s", WebkitTapHighlightColor:"transparent", outline:"none" }}
-                onMouseEnter={e => (e.currentTarget.style.transform="scale(1.1)")}
+                style={{ width:46, height:46, borderRadius:"50%", background:F.text, border:"none", color:"#fff", fontSize:24, cursor:"pointer", boxShadow:"0 2px 12px rgba(0,0,0,0.2)", display:"flex", alignItems:"center", justifyContent:"center", marginBottom:4, transition:"transform 0.15s", WebkitTapHighlightColor:"transparent", outline:"none" }}
+                onMouseEnter={e => (e.currentTarget.style.transform="scale(1.08)")}
                 onMouseLeave={e => (e.currentTarget.style.transform="")}>
                 +
               </button>
@@ -1076,8 +1046,8 @@ export default function Home() {
             {[{id:"category",label:"통계",emoji:"📊"},{id:"more",label:"더보기",emoji:"···"}].map(n => (
               <button key={n.id} onClick={() => navigateTo(n.id as any)}
                 style={{ flex:1, border:"none", background:"none", cursor:"pointer", display:"flex", flexDirection:"column", alignItems:"center", gap:2, fontFamily:"inherit", padding:"4px 0", WebkitTapHighlightColor:"transparent", outline:"none" }}>
-                <span style={{ fontSize:20, filter:view===n.id?`drop-shadow(0 0 4px ${F.accent}80)`:"none", transition:"filter 0.2s" }}>{n.emoji}</span>
-                <span style={{ fontSize:10, color:view===n.id?F.accent:F.textMut, fontWeight:view===n.id?700:400, transition:"color 0.2s" }}>{n.label}</span>
+                <span style={{ fontSize:20, opacity:view===n.id?1:0.35, transition:"opacity 0.2s" }}>{n.emoji}</span>
+                <span style={{ fontSize:10, color:view===n.id?F.text:F.textMut, fontWeight:view===n.id?700:400, transition:"color 0.2s" }}>{n.label}</span>
               </button>
             ))}
           </div>
