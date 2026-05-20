@@ -487,7 +487,7 @@ export default function Home() {
                     style={{ display:"flex", alignItems:"flex-start", gap:14, padding:"16px 0", borderBottom:`1px solid ${F.border}`, cursor:"pointer" }}>
                     {/* 썸네일 */}
                     {rec.thumbnail
-                      ? <img src={rec.thumbnail} style={{ width:56, height:72, objectFit:"cover", borderRadius:8, flexShrink:0 }} />
+                      ? <img src={rec.thumbnail} style={{ width:56, height:72, objectFit:"cover", borderRadius:8, flexShrink:0 }} referrerPolicy="no-referrer" />
                       : <div style={{ width:56, height:72, borderRadius:8, background:`${cat.color}12`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:24, flexShrink:0 }}>{cat.emoji}</div>
                     }
                     <div style={{ flex:1, minWidth:0, height:72, display:"flex", flexDirection:"column", justifyContent:"space-between", paddingTop:2, paddingBottom:2 }}>
@@ -593,7 +593,7 @@ export default function Home() {
                           onMouseEnter={e => (e.currentTarget.style.background="#F0F7FF")}
                           onMouseLeave={e => (e.currentTarget.style.background="")}>
                           {s.thumbnail
-                            ? <img src={s.thumbnail} style={{ width:30, height:42, objectFit:"cover", borderRadius:6, flexShrink:0 }} />
+                            ? <img src={s.thumbnail} style={{ width:30, height:42, objectFit:"cover", borderRadius:6, flexShrink:0 }} referrerPolicy="no-referrer" />
                             : <div style={{ width:30, height:42, borderRadius:6, background:F.bg, display:"flex", alignItems:"center", justifyContent:"center", fontSize:14, flexShrink:0 }}>{activeCat.emoji}</div>
                           }
                           <div style={{ minWidth:0 }}>
@@ -613,7 +613,7 @@ export default function Home() {
               {/* 선택 프리뷰 */}
               {form.thumbnail && !showSug && (
                 <div style={{ display:"flex", alignItems:"center", gap:12, padding:"10px 14px", background:`${F.accentColor}08`, borderRadius:14, marginBottom:14, border:`1.5px solid ${F.accentColor}25` }}>
-                  <img src={form.thumbnail} style={{ width:34, height:48, objectFit:"cover", borderRadius:8 }} />
+                  <img src={form.thumbnail} style={{ width:34, height:48, objectFit:"cover", borderRadius:8 }} referrerPolicy="no-referrer" />
                   <div style={{ flex:1, minWidth:0 }}>
                     <p style={{ fontSize:13, fontWeight:700, margin:"0 0 2px", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", color:F.text }}>{form.title}</p>
                     {form.author && <p style={{ fontSize:11, color:F.textMut, margin:0 }}>{form.author}</p>}
@@ -702,17 +702,70 @@ export default function Home() {
           return (
             <div style={{ flex:1, overflowY:"auto", paddingBottom:90, background:F.white }}>
 
-              {/* 이미지 풀스크린 상단 */}
-              <div style={{ position:"relative", width:"100%", aspectRatio:"3/2", background:cat.color+"15" }}>
-                {selected.thumbnail
-                  ? <img src={selected.thumbnail} style={{ width:"100%", height:"100%", objectFit:"cover", display:"block" }} />
-                  : <div style={{ width:"100%", height:"100%", display:"flex", alignItems:"center", justifyContent:"center", fontSize:72 }}>{cat.emoji}</div>
-                }
-                <div style={{ position:"absolute", top:0, left:0, right:0, height:80, background:"linear-gradient(to bottom, rgba(0,0,0,0.4), transparent)" }} />
+              {/* 티켓 디자인 */}
+              <div style={{ margin:"16px 20px 0", position:"relative" }}>
+                {/* 뒤로가기 */}
                 <button onClick={() => navigateTo(prevView)}
-                  style={{ position:"absolute", top:16, left:16, width:36, height:36, borderRadius:"50%", background:"rgba(255,255,255,0.92)", border:"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", backdropFilter:"blur(8px)", boxShadow:"0 2px 8px rgba(0,0,0,0.15)", WebkitTapHighlightColor:"transparent" }}>
-                  <span style={{ fontSize:20, color:F.text, lineHeight:1 }}>‹</span>
+                  style={{ 
+                    position:"absolute", top:-8, left:-8, zIndex:10, width:34, height:34, borderRadius:"50%",
+                    background:F.white, cursor:"pointer", display:"flex", alignItems:"center", border: "1px solid ${F.border}",
+                    justifyContent:"center", boxShadow:F.shadow, WebkitTapHighlightColor:"transparent" 
+                  }}>
+                  <span style={{ fontSize:18, color:F.text, lineHeight:1 }}>‹</span>
                 </button>
+
+                {/* 티켓 카드 */}
+                <div style={{ borderRadius:20, overflow:"hidden", boxShadow:"0 8px 32px rgba(0,0,0,0.12)" }}>
+                  {/* 이미지 영역 */}
+                  <div style={{ position:"relative", aspectRatio:"2/3", background:cat.color+"15" }}>
+                    {selected.thumbnail
+                      ? <img src={selected.thumbnail} style={{ width:"100%", height:"100%", objectFit:"cover", display:"block" }} referrerPolicy="no-referrer" />
+                      : <div style={{ width:"100%", height:"100%", display:"flex", alignItems:"center", justifyContent:"center", fontSize:64 }}>{cat.emoji}</div>
+                    }
+                    {/* 하단 그라디언트 */}
+                    <div style={{ position:"absolute", bottom:0, left:0, right:0, height:"50%", background:"linear-gradient(to top, rgba(0,0,0,0.6), transparent)" }} />
+                    {/* 카테고리 뱃지 */}
+                    <div style={{ position:"absolute", top:12, right:12, background:"rgba(255,255,255,0.92)", backdropFilter:"blur(8px)", padding:"4px 10px", borderRadius:20 }}>
+                      <span style={{ fontSize:11, color:cat.color, fontWeight:700 }}>{cat.emoji} {cat.label}</span>
+                    </div>
+                    {/* 하단 제목 오버레이 */}
+                    <div style={{ position:"absolute", bottom:0, left:0, right:0, padding:"14px 16px" }}>
+                      <p style={{ fontSize:20, fontWeight:800, color:"#fff", margin:0, lineHeight:1.25, wordBreak:"keep-all", textShadow:"0 1px 4px rgba(0,0,0,0.3)" }}>{selected.title}</p>
+                    </div>
+                  </div>
+
+                  {/* 티켓 구분선 — 반원 노치 */}
+                  <div style={{ position:"relative", background:F.white, display:"flex", alignItems:"center" }}>
+                    <div style={{ position:"absolute", left:-12, width:24, height:24, borderRadius:"50%", background:F.bg }} />
+                    <div style={{ flex:1, margin:"0 20px", borderTop: "2px dashed ${F.border}" }} />
+                    <div style={{ position:"absolute", right:-12, width:24, height:24, borderRadius:"50%", background:F.bg }} />
+                  </div>
+
+                  {/* 티켓 하단 정보 */}
+                  <div style={{ background:F.white, padding:"14px 20px 20px" }}>
+                    {/* 별점 + 날짜 */}
+                    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
+                      <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                        <Stars v={Number(selected.rating)} size={18} />
+                        <span style={{ fontSize:15, fontWeight:700, color:F.text }}>{Number(selected.rating).toFixed(1)}</span>
+                      </div>
+                      <span style={{ fontSize:12, color:F.textMut }}>
+                        {selected.category==="book"
+                          ? (selected.date_start ? formatDate(selected.date_start) : formatDate(selected.date))
+                          : formatDate(selected.date)}
+                      </span>
+                    </div>
+                    {/* 외부 링크 */}
+                    {(selected.category==="book" || selected.category==="movie") && (
+                      <a href={selected.category==="book" ? `https://www.google.com/search?q=${encodeURIComponent(selected.title+" "+(selected.author??""))}&tbm=bks` : `https://www.themoviedb.org/search?query=${encodeURIComponent(selected.title)}`}
+                        target="_blank" rel="noopener noreferrer"
+                        style={{ fontSize:12, color:F.textMut, textDecoration:"none", display:"flex", alignItems:"center", gap:4 }}>
+                        <span>{selected.category==="book" ? "Google Books에서 보기" : "TMDB에서 보기"}</span>
+                        <span style={{ fontSize:11 }}>↗</span>
+                      </a>
+                    )}
+                  </div>
+                </div>
               </div>
 
               {/* 카테고리 + 날짜 */}
