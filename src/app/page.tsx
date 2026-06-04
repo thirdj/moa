@@ -57,14 +57,23 @@ function Stars({ v, onChange, size = 16 }: { v: number; onChange?: (n: number) =
   );
 }
 
+// DB에서 오는 날짜가 "2025-05-19T00:00:00.000Z" 같은 UTC ISO일 때
+// new Date()로 파싱하면 KST(+9h)에서 하루 밀림 → 항상 문자열 앞 10자리만 사용
+function safeDate(d: string) {
+  if (!d) return "";
+  return d.slice(0, 10); // "YYYY-MM-DD" 만 추출, 절대 Date 객체로 파싱하지 않음
+}
+
 function formatDate(d: string) {
   if (!d) return "";
-  const [y, m, day] = d.slice(0, 10).split("-");
+  const s = safeDate(d);
+  const [y, m, day] = s.split("-");
   return `${y}.${m}.${day}`;
 }
 
 function todayStr() {
   const d = new Date();
+  // 로컬 시간 기준으로 생성 (UTC 변환 없음)
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 }
 function getDaysInMonth(y: number, m: number) { return new Date(y,m+1,0).getDate(); }
@@ -88,9 +97,24 @@ function DatePicker({ value, onChange, min, placeholder = "날짜 선택", disab
   const [open, setOpen] = useState(false);
   const today = todayStr();
 
-  const parsed = value ? new Date(value + "T00:00:00") : new Date();
+  const parseLocal = (v: string) => {
+    if (!v) return new Date();
+    const s = safeDate(v); // "YYYY-MM-DD" 만 사용
+    const [y, m, d] = s.split("-").map(Number);
+    return new Date(y, m - 1, d); // 로컬 시간 기준 생성
+  };
+  const parsed = parseLocal(value);
   const [calY, setCalY] = useState(parsed.getFullYear());
   const [calM, setCalM] = useState(parsed.getMonth());
+
+  // value가 외부에서 바뀌면 달력 월도 동기화
+  useEffect(() => {
+    if (value) {
+      const p = parseLocal(value);
+      setCalY(p.getFullYear());
+      setCalM(p.getMonth());
+    }
+  }, [value]);
 
   const days = getDaysInMonth(calY, calM);
   const first = getFirstDay(calY, calM);
@@ -280,6 +304,9 @@ export default function Home() {
   const [calYear, setCalYear] = useState(new Date().getFullYear());
   const [calMonth, setCalMonth] = useState(new Date().getMonth());
   const [calSelected, setCalSelected] = useState<string>(todayStr());
+  const [showRatingModal, setShowRatingModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [finishRating, setFinishRating] = useState(0);
   const homeScrollRef = useRef<HTMLDivElement>(null);
 
   const { suggestions, loading:acLoading, clear } = useAutocomplete(titleQuery, form.category, showSug && !!form.category);
@@ -333,26 +360,53 @@ export default function Home() {
     setLoading(false);
   }
 
+  // 날짜 문자열을 API로 보낼 때 UTC 변환으로 하루 밀리는 것을 방지
+  function fixDateForApi(d: string) {
+    if (!d) return d;
+    if (d.length === 10) return d + "T12:00:00";
+    return d;
+  }
+
   async function save() {
-    if (!form.title || !form.category || !form.rating) return;
+    if (!form.title || !form.category) return;
+    if (form.category !== "book" && !form.rating) return;
     setSaving(true);
+    const payload = {
+      ...form,
+      date:       fixDateForApi(form.date),
+      date_start: fixDateForApi(form.date_start),
+      date_end:   fixDateForApi(form.date_end),
+    };
     try {
       if (editId) {
-        await fetch(`/api/records/${editId}`, { method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify(form) });
-        await fetchRecords();
-        setSelected({ ...selected!, ...form, id:editId });
+        // 수정: API 응답으로 로컬 state 직접 업데이트 (재조회 없음)
+        const res = await fetch(`/api/records/${editId}`, { method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload) });
+        if (res.ok) {
+          const updated = await res.json();
+          setRecords(prev => prev.map(r => r.id === editId ? updated : r));
+          setSelected(updated);
+        }
         reset(); navigateTo("detail");
       } else {
-        await fetch("/api/records", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(form) });
-        await fetchRecords(); reset(); navigateTo("home");
+        // 신규: API 응답 레코드를 목록 맨 앞에 추가 (재조회 없음)
+        const res = await fetch("/api/records", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload) });
+        if (res.ok) {
+          const created = await res.json();
+          setRecords(prev => [created, ...prev]);
+        }
+        reset(); navigateTo("home");
       }
     } finally { setSaving(false); }
   }
 
   async function del(id: number) {
     if (!confirm("삭제할까요?")) return;
-    await fetch(`/api/records/${id}`, { method:"DELETE" });
-    await fetchRecords(); navigateTo(prevView);
+    setDeleting(true);
+    try {
+      await fetch(`/api/records/${id}`, { method:"DELETE" });
+      setRecords(prev => prev.filter(r => r.id !== id));
+      navigateTo(prevView);
+    } finally { setDeleting(false); }
   }
 
   function reset() { setForm(makeEmpty()); setEditId(null); setTitleQuery(""); clear(); setShowSug(false); }
@@ -362,7 +416,7 @@ export default function Home() {
   }
 
   function openEdit(r: CultureRecord) {
-    setForm({ category:r.category, title:r.title, date:r.date.slice(0,10), rating:r.rating, review:r.review??"", thumbnail:r.thumbnail??"", author:r.author??"", venue:r.venue??"", date_start:r.date_start?.slice(0,10)??"", date_end:r.date_end?.slice(0,10)??"", finished:r.finished??false });
+    setForm({ category:r.category, title:r.title, date:safeDate(r.date), rating:r.rating, review:r.review??"", thumbnail:r.thumbnail??"", author:r.author??"", venue:r.venue??"", date_start:safeDate(r.date_start??"")||"", date_end:safeDate(r.date_end??"")||"", finished:r.finished??false });
     setTitleQuery(r.title); setEditId(r.id); navigateTo("add");
   }
 
@@ -387,7 +441,7 @@ export default function Home() {
     });
   })();
   const activeCat = catOf(form.category);
-  const canSave = !!form.title && !!form.category && !!form.rating;
+  const canSave = !!form.title && !!form.category && (form.category === "book" || !!form.rating);
   const daysInMonth = getDaysInMonth(calYear, calMonth);
   const firstDay = getFirstDay(calYear, calMonth);
   const calDateStr = (d: number) => `${calYear}-${String(calMonth+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
@@ -702,70 +756,20 @@ export default function Home() {
           return (
             <div style={{ flex:1, overflowY:"auto", paddingBottom:90, background:F.white }}>
 
-              {/* 티켓 디자인 */}
-              <div style={{ margin:"16px 20px 0", position:"relative" }}>
+              {/* 포스터 */}
+              <div style={{ position:"relative", width:"100%", aspectRatio:"2/3", background:cat.color+"18" }}>
+                {selected.thumbnail
+                  ? <img src={selected.thumbnail} style={{ width:"100%", height:"100%", objectFit:"cover", display:"block" }} referrerPolicy="no-referrer" />
+                  : <div style={{ width:"100%", height:"100%", display:"flex", alignItems:"center", justifyContent:"center", fontSize:80 }}>{cat.emoji}</div>
+                }
                 {/* 뒤로가기 */}
                 <button onClick={() => navigateTo(prevView)}
-                  style={{ 
-                    position:"absolute", top:-8, left:-8, zIndex:10, width:34, height:34, borderRadius:"50%",
-                    background:F.white, cursor:"pointer", display:"flex", alignItems:"center", border: "1px solid ${F.border}",
-                    justifyContent:"center", boxShadow:F.shadow, WebkitTapHighlightColor:"transparent" 
-                  }}>
-                  <span style={{ fontSize:18, color:F.text, lineHeight:1 }}>‹</span>
+                  style={{ position:"absolute", top:16, left:16, zIndex:10, width:36, height:36, borderRadius:"50%",
+                    background:"rgba(255,255,255,0.88)", backdropFilter:"blur(8px)", cursor:"pointer",
+                    display:"flex", alignItems:"center", justifyContent:"center",
+                    border:"none", boxShadow:"0 2px 8px rgba(0,0,0,0.15)", WebkitTapHighlightColor:"transparent" }}>
+                  <span style={{ fontSize:20, color:F.text, lineHeight:1 }}>‹</span>
                 </button>
-
-                {/* 티켓 카드 */}
-                <div style={{ borderRadius:20, overflow:"hidden", boxShadow:"0 8px 32px rgba(0,0,0,0.12)" }}>
-                  {/* 이미지 영역 */}
-                  <div style={{ position:"relative", aspectRatio:"2/3", background:cat.color+"15" }}>
-                    {selected.thumbnail
-                      ? <img src={selected.thumbnail} style={{ width:"100%", height:"100%", objectFit:"cover", display:"block" }} referrerPolicy="no-referrer" />
-                      : <div style={{ width:"100%", height:"100%", display:"flex", alignItems:"center", justifyContent:"center", fontSize:64 }}>{cat.emoji}</div>
-                    }
-                    {/* 하단 그라디언트 */}
-                    <div style={{ position:"absolute", bottom:0, left:0, right:0, height:"50%", background:"linear-gradient(to top, rgba(0,0,0,0.6), transparent)" }} />
-                    {/* 카테고리 뱃지 */}
-                    <div style={{ position:"absolute", top:12, right:12, background:"rgba(255,255,255,0.92)", backdropFilter:"blur(8px)", padding:"4px 10px", borderRadius:20 }}>
-                      <span style={{ fontSize:11, color:cat.color, fontWeight:700 }}>{cat.emoji} {cat.label}</span>
-                    </div>
-                    {/* 하단 제목 오버레이 */}
-                    <div style={{ position:"absolute", bottom:0, left:0, right:0, padding:"14px 16px" }}>
-                      <p style={{ fontSize:20, fontWeight:800, color:"#fff", margin:0, lineHeight:1.25, wordBreak:"keep-all", textShadow:"0 1px 4px rgba(0,0,0,0.3)" }}>{selected.title}</p>
-                    </div>
-                  </div>
-
-                  {/* 티켓 구분선 — 반원 노치 */}
-                  <div style={{ position:"relative", background:F.white, display:"flex", alignItems:"center" }}>
-                    <div style={{ position:"absolute", left:-12, width:24, height:24, borderRadius:"50%", background:F.bg }} />
-                    <div style={{ flex:1, margin:"0 20px", borderTop: "2px dashed ${F.border}" }} />
-                    <div style={{ position:"absolute", right:-12, width:24, height:24, borderRadius:"50%", background:F.bg }} />
-                  </div>
-
-                  {/* 티켓 하단 정보 */}
-                  <div style={{ background:F.white, padding:"14px 20px 20px" }}>
-                    {/* 별점 + 날짜 */}
-                    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
-                      <div style={{ display:"flex", alignItems:"center", gap:6 }}>
-                        <Stars v={Number(selected.rating)} size={18} />
-                        <span style={{ fontSize:15, fontWeight:700, color:F.text }}>{Number(selected.rating).toFixed(1)}</span>
-                      </div>
-                      <span style={{ fontSize:12, color:F.textMut }}>
-                        {selected.category==="book"
-                          ? (selected.date_start ? formatDate(selected.date_start) : formatDate(selected.date))
-                          : formatDate(selected.date)}
-                      </span>
-                    </div>
-                    {/* 외부 링크 */}
-                    {(selected.category==="book" || selected.category==="movie") && (
-                      <a href={selected.category==="book" ? `https://www.google.com/search?q=${encodeURIComponent(selected.title+" "+(selected.author??""))}&tbm=bks` : `https://www.themoviedb.org/search?query=${encodeURIComponent(selected.title)}`}
-                        target="_blank" rel="noopener noreferrer"
-                        style={{ fontSize:12, color:F.textMut, textDecoration:"none", display:"flex", alignItems:"center", gap:4 }}>
-                        <span>{selected.category==="book" ? "Google Books에서 보기" : "TMDB에서 보기"}</span>
-                        <span style={{ fontSize:11 }}>↗</span>
-                      </a>
-                    )}
-                  </div>
-                </div>
               </div>
 
               {/* 카테고리 + 날짜 */}
@@ -827,7 +831,7 @@ export default function Home() {
               {selected.category==="book" && !selected.finished && <>
                 <div style={{ height:1, background:F.border }} />
                 <div style={{ padding:"14px 20px" }}>
-                  <button onClick={async () => { const today=todayStr(); const updated={...selected,finished:true,date_end:today}; await fetch(`/api/records/${selected.id}`,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({finished:true,date_end:today})}); setSelected(updated); await fetchRecords(); }}
+                  <button onClick={() => { setFinishRating(Number(selected.rating) || 0); setShowRatingModal(true); }}
                     style={{ width:"100%", padding:"13px", borderRadius:12, border:`1.5px solid ${F.accentColor}`, background:"#fff", color:F.accentColor, fontWeight:700, fontSize:14, cursor:"pointer", fontFamily:"inherit", transition:"all 0.2s" }}
                     onMouseEnter={e=>{e.currentTarget.style.background=F.accentColor;e.currentTarget.style.color="#fff";}}
                     onMouseLeave={e=>{e.currentTarget.style.background="#fff";e.currentTarget.style.color=F.accentColor;}}>
@@ -840,11 +844,56 @@ export default function Home() {
               <div style={{ height:1, background:F.border }} />
               <div style={{ display:"flex", gap:10, padding:"14px 20px" }}>
                 <button onClick={() => openEdit(selected)} style={{ flex:1, padding:"13px", borderRadius:12, border:`1px solid ${F.border}`, background:F.white, color:F.text, fontWeight:600, fontSize:14, cursor:"pointer", fontFamily:"inherit" }}>수정</button>
-                <button onClick={() => del(selected.id)} style={{ flex:1, padding:"13px", borderRadius:12, border:"none", background:"#FFF0F0", color:"#FF4444", fontWeight:600, fontSize:14, cursor:"pointer", fontFamily:"inherit" }}>삭제</button>
+                <button onClick={() => del(selected.id)} disabled={deleting} style={{ flex:1, padding:"13px", borderRadius:12, border:"none", background:"#FFF0F0", color:"#FF4444", fontWeight:600, fontSize:14, cursor:deleting?"default":"pointer", fontFamily:"inherit", opacity:deleting?0.6:1 }}>{deleting ? "삭제 중..." : "삭제"}</button>
               </div>
             </div>
           );
         })()}
+
+        {/* ── 삭제 중 오버레이 ─────────────────────────────────── */}
+        {deleting && (
+          <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.35)", zIndex:300, display:"flex", alignItems:"center", justifyContent:"center" }}>
+            <div style={{ background:"#fff", borderRadius:20, padding:"24px 32px", display:"flex", flexDirection:"column", alignItems:"center", gap:12, boxShadow:"0 8px 32px rgba(0,0,0,0.2)" }}>
+              <div style={{ width:32, height:32, border:"3px solid #FF4444", borderTopColor:"transparent", borderRadius:"50%", animation:"spin 0.8s linear infinite" }} />
+              <span style={{ fontSize:14, fontWeight:600, color:"#FF4444" }}>삭제 중...</span>
+            </div>
+          </div>
+        )}
+
+        {/* ── 완독 별점 모달 ───────────────────────────────────────── */}
+        {showRatingModal && selected && (
+          <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.45)", zIndex:200, display:"flex", alignItems:"center", justifyContent:"center", padding:"0 24px" }}
+            onClick={e => { if (e.target === e.currentTarget) setShowRatingModal(false); }}>
+            <div style={{ background:F.white, borderRadius:24, padding:"28px 24px", width:"100%", maxWidth:340, boxShadow:"0 12px 48px rgba(0,0,0,0.2)" }}>
+              <p style={{ fontSize:18, fontWeight:800, color:F.text, margin:"0 0 6px", textAlign:"center" }}>📖 완독 축하해요!</p>
+              <p style={{ fontSize:13, color:F.textMut, textAlign:"center", margin:"0 0 22px" }}>이 책은 어떠셨나요? 별점을 남겨주세요</p>
+              <div style={{ display:"flex", justifyContent:"center", marginBottom:24 }}>
+                <Stars v={finishRating} onChange={setFinishRating} size={40} />
+              </div>
+              <button
+                onClick={async () => {
+                  const today = todayStr();
+                  const updated = { ...selected, finished: true, date_end: today, rating: finishRating };
+                  const res = await fetch(`/api/records/${selected.id}`, { method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ finished:true, date_end:fixDateForApi(today), rating:finishRating }) });
+                  if (res.ok) {
+                    const updatedRec = await res.json();
+                    setSelected(updatedRec);
+                    setRecords(prev => prev.map(r => r.id === selected.id ? updatedRec : r));
+                  } else {
+                    setSelected(updated);
+                  }
+                  setShowRatingModal(false);
+                }}
+                style={{ width:"100%", padding:"14px", borderRadius:14, border:"none", background:F.accentColor, color:"#fff", fontWeight:700, fontSize:15, cursor:"pointer", fontFamily:"inherit", boxShadow:"0 4px 16px rgba(123,97,255,0.35)" }}>
+                완료
+              </button>
+              <button onClick={() => setShowRatingModal(false)}
+                style={{ width:"100%", marginTop:10, padding:"10px", borderRadius:14, border:"none", background:"transparent", color:F.textMut, fontSize:14, cursor:"pointer", fontFamily:"inherit" }}>
+                취소
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* ══ CATEGORY = 통계 ═══════════════════════════════════════ */}
         {view==="category" && (
@@ -857,7 +906,7 @@ export default function Home() {
             <div style={{ margin:"0 16px 16px", display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10 }}>
               {[
                 { label:"총 기록", value:`${records.length}개`, emoji:"📝" },
-                { label:"평균 별점", value:records.length?`${(records.reduce((s,r)=>s+Number(r.rating),0)/records.length).toFixed(1)}`:"-", emoji:"⭐" },
+                { label:"평균 별점", value:records.filter(r=>Number(r.rating)>0).length?`${(records.filter(r=>Number(r.rating)>0).reduce((s,r)=>s+Number(r.rating),0)/records.filter(r=>Number(r.rating)>0).length).toFixed(1)}`:"-", emoji:"⭐" },
                 { label:"이번 달", value:`${records.filter(r=>r.date?.slice(0,7)===todayStr().slice(0,7)).length}개`, emoji:"📅" },
               ].map(s => (
                 <Card key={s.label}>
@@ -1039,7 +1088,7 @@ export default function Home() {
             <div style={{ margin:"0 16px 16px", display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10 }}>
               {[
                 { label:"총 기록", value:`${records.length}개` },
-                { label:"평균 별점", value:records.length?`${(records.reduce((s,r)=>s+Number(r.rating),0)/records.length).toFixed(1)}점`:"-" },
+                { label:"평균 별점", value:records.filter(r=>Number(r.rating)>0).length?`${(records.filter(r=>Number(r.rating)>0).reduce((s,r)=>s+Number(r.rating),0)/records.filter(r=>Number(r.rating)>0).length).toFixed(1)}점`:"-" },
                 { label:"이번 달", value:`${records.filter(r=>r.date?.slice(0,7)===todayStr().slice(0,7)).length}개` },
               ].map(s => (
                 <Card key={s.label}>

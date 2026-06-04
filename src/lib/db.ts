@@ -1,10 +1,23 @@
 // src/lib/db.ts
 import { neon } from "@neondatabase/serverless";
 
-const sql = neon(process.env.DATABASE_URL!);
+// Next.js dev 환경에서 HMR 때마다 새 연결 생성 방지 → 전역 캐싱
+// prod에서는 Vercel 함수 인스턴스가 warm하면 재사용됨
+const globalForDb = globalThis as unknown as { _sql: ReturnType<typeof neon> };
+const sql = globalForDb._sql ?? neon(process.env.DATABASE_URL!);
+if (process.env.NODE_ENV !== "production") globalForDb._sql = sql;
 
 export async function getRecords(userId: string) {
-  return sql`SELECT * FROM records WHERE user_id = ${userId} ORDER BY created_at DESC`;
+  return sql`
+    SELECT
+      id, user_id, category, title, rating, review, thumbnail, author, venue, finished, created_at,
+      date::text       AS date,
+      date_start::text AS date_start,
+      date_end::text   AS date_end
+    FROM records
+    WHERE user_id = ${userId}
+    ORDER BY created_at DESC
+  `;
 }
 
 export async function createRecord(
@@ -23,7 +36,12 @@ export async function createRecord(
        ${data.review ?? null}, ${data.thumbnail ?? null}, ${data.author ?? null},
        ${data.venue ?? null}, ${data.date_start || null}, ${data.date_end || null},
        ${data.finished ?? false})
-    RETURNING *`;
+    RETURNING
+      id, user_id, category, title, rating, review, thumbnail, author, venue, finished, created_at,
+      date::text       AS date,
+      date_start::text AS date_start,
+      date_end::text   AS date_end
+  `;
   return row;
 }
 
@@ -48,7 +66,12 @@ export async function updateRecord(
       date_end   = COALESCE(${data.date_end   || null}::date, date_end),
       finished   = ${data.finished ?? false}
     WHERE id = ${id} AND user_id = ${userId}
-    RETURNING *`;
+    RETURNING
+      id, user_id, category, title, rating, review, thumbnail, author, venue, finished, created_at,
+      date::text       AS date,
+      date_start::text AS date_start,
+      date_end::text   AS date_end
+  `;
   return row;
 }
 
