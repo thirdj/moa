@@ -28,7 +28,7 @@ export async function createRecord(
     date_start?: string; date_end?: string; finished?: boolean;
   }
 ) {
-  const [row] = await sql`
+  const rows = await sql`
     INSERT INTO records
       (user_id, category, title, date, rating, review, thumbnail, author, venue, date_start, date_end, finished)
     VALUES
@@ -41,7 +41,8 @@ export async function createRecord(
       date::text       AS date,
       date_start::text AS date_start,
       date_end::text   AS date_end
-  `;
+  ` as any[];
+  const row = rows[0];
   return row;
 }
 
@@ -53,7 +54,7 @@ export async function updateRecord(
     date_start?: string; date_end?: string; finished?: boolean;
   }
 ) {
-  const [row] = await sql`
+  const rows = await sql`
     UPDATE records SET
       title      = COALESCE(${data.title      ?? null}, title),
       date       = COALESCE(${data.date       ?? null}::date, date),
@@ -71,7 +72,8 @@ export async function updateRecord(
       date::text       AS date,
       date_start::text AS date_start,
       date_end::text   AS date_end
-  `;
+  ` as any[];
+  const row = rows[0];
   return row;
 }
 
