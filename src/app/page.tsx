@@ -313,7 +313,7 @@ export default function Home() {
   const categoryScrollRef  = useRef<HTMLDivElement>(null);
   const moreScrollRef      = useRef<HTMLDivElement>(null);
 
-  const scrollRefs: Record<string, React.RefObject<HTMLDivElement>> = {
+  const scrollRefs: Record<string, React.RefObject<HTMLDivElement | null>> = {
     home:     homeScrollRef,
     calendar: calendarScrollRef,
     category: categoryScrollRef,
