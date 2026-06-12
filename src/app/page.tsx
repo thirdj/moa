@@ -307,7 +307,18 @@ export default function Home() {
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [finishRating, setFinishRating] = useState(0);
-  const homeScrollRef = useRef<HTMLDivElement>(null);
+  const [finishReview, setFinishReview] = useState("");
+  const homeScrollRef     = useRef<HTMLDivElement>(null);
+  const calendarScrollRef  = useRef<HTMLDivElement>(null);
+  const categoryScrollRef  = useRef<HTMLDivElement>(null);
+  const moreScrollRef      = useRef<HTMLDivElement>(null);
+
+  const scrollRefs: Record<string, React.RefObject<HTMLDivElement>> = {
+    home:     homeScrollRef,
+    calendar: calendarScrollRef,
+    category: categoryScrollRef,
+    more:     moreScrollRef,
+  };
 
   const { suggestions, loading:acLoading, clear } = useAutocomplete(titleQuery, form.category, showSug && !!form.category);
 
@@ -487,8 +498,8 @@ export default function Home() {
   }
 
   return (
-    <div style={{ fontFamily:"'Apple SD Gothic Neo','Noto Sans KR',sans-serif", background:F.bg, minHeight:"100vh", display:"flex", justifyContent:"center" }}>
-      <div style={{ width:"100%", maxWidth:390, background:F.bg, minHeight:"100vh", display:"flex", flexDirection:"column", position:"relative" }}>
+    <div style={{ fontFamily:"'Apple SD Gothic Neo','Noto Sans KR',sans-serif", background:F.bg, height:"100vh", overflow:"hidden", display:"flex", justifyContent:"center" }}>
+      <div style={{ width:"100%", maxWidth:390, background:F.bg, height:"100vh", display:"flex", flexDirection:"column", position:"relative", overflow:"hidden" }}>
 
         {/* ══ HOME ══════════════════════════════════════════════════ */}
         {view==="home" && (
@@ -555,11 +566,14 @@ export default function Home() {
                         <p style={{ fontSize:15, fontWeight:700, color:F.text, margin:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", lineHeight:1.3 }}>{rec.title}</p>
                       </div>
                       <div>
-                        {/* 별점 + 리뷰 */}
-                        <div style={{ display:"flex", alignItems:"center", gap:6 }}>
-                          <Stars v={Number(rec.rating)} size={12} />
-                          {rec.review && <span style={{ fontSize:12, color:F.textMut, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{rec.review}</span>}
-                        </div>
+                        {/* 읽는중 뱃지 (책이고 완독 전이고 시작일 있을 때) */}
+                        {rec.category === "book" && !rec.finished && rec.date_start
+                          ? <span style={{ fontSize:11, fontWeight:700, color:"#FF9800", background:"#FFF3E0", padding:"2px 8px", borderRadius:20 }}>📚 읽는 중</span>
+                          : <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                              <Stars v={Number(rec.rating)} size={12} />
+                              {rec.review && <span style={{ fontSize:12, color:F.textMut, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{rec.review}</span>}
+                            </div>
+                        }
                       </div>
                     </div>
                   </div>
@@ -831,7 +845,7 @@ export default function Home() {
               {selected.category==="book" && !selected.finished && <>
                 <div style={{ height:1, background:F.border }} />
                 <div style={{ padding:"14px 20px" }}>
-                  <button onClick={() => { setFinishRating(Number(selected.rating) || 0); setShowRatingModal(true); }}
+                  <button onClick={() => { setFinishRating(Number(selected.rating) || 0); setFinishReview(selected.review ?? ""); setShowRatingModal(true); }}
                     style={{ width:"100%", padding:"13px", borderRadius:12, border:`1.5px solid ${F.accentColor}`, background:"#fff", color:F.accentColor, fontWeight:700, fontSize:14, cursor:"pointer", fontFamily:"inherit", transition:"all 0.2s" }}
                     onMouseEnter={e=>{e.currentTarget.style.background=F.accentColor;e.currentTarget.style.color="#fff";}}
                     onMouseLeave={e=>{e.currentTarget.style.background="#fff";e.currentTarget.style.color=F.accentColor;}}>
@@ -865,16 +879,27 @@ export default function Home() {
           <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.45)", zIndex:200, display:"flex", alignItems:"center", justifyContent:"center", padding:"0 24px" }}
             onClick={e => { if (e.target === e.currentTarget) setShowRatingModal(false); }}>
             <div style={{ background:F.white, borderRadius:24, padding:"28px 24px", width:"100%", maxWidth:340, boxShadow:"0 12px 48px rgba(0,0,0,0.2)" }}>
-              <p style={{ fontSize:18, fontWeight:800, color:F.text, margin:"0 0 6px", textAlign:"center" }}>📖 완독 축하해요!</p>
-              <p style={{ fontSize:13, color:F.textMut, textAlign:"center", margin:"0 0 22px" }}>이 책은 어떠셨나요? 별점을 남겨주세요</p>
-              <div style={{ display:"flex", justifyContent:"center", marginBottom:24 }}>
+              <p style={{ fontSize:18, fontWeight:800, color:F.text, margin:"0 0 4px", textAlign:"center" }}>📖 완독 축하해요!</p>
+              <p style={{ fontSize:13, color:F.textMut, textAlign:"center", margin:"0 0 20px" }}>이 책은 어떠셨나요?</p>
+              {/* 별점 */}
+              <p style={{ fontSize:12, fontWeight:700, color:F.textMut, margin:"0 0 8px", textAlign:"center", letterSpacing:0.3 }}>별점</p>
+              <div style={{ display:"flex", justifyContent:"center", marginBottom:20 }}>
                 <Stars v={finishRating} onChange={setFinishRating} size={40} />
               </div>
+              {/* 한줄평 */}
+              <p style={{ fontSize:12, fontWeight:700, color:F.textMut, margin:"0 0 8px", letterSpacing:0.3 }}>한 줄 평 <span style={{ fontWeight:400 }}>(선택)</span></p>
+              <textarea
+                value={finishReview}
+                onChange={e => setFinishReview(e.target.value)}
+                placeholder="이 책에 대한 짧은 감상을 남겨보세요"
+                rows={3}
+                style={{ width:"100%", boxSizing:"border-box", padding:"10px 12px", borderRadius:12, border:`1.5px solid ${F.border}`, fontSize:14, fontFamily:"inherit", color:F.text, resize:"none", outline:"none", background:F.bg, marginBottom:20, lineHeight:1.6 }}
+              />
               <button
                 onClick={async () => {
                   const today = todayStr();
-                  const updated = { ...selected, finished: true, date_end: today, rating: finishRating };
-                  const res = await fetch(`/api/records/${selected.id}`, { method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ finished:true, date_end:fixDateForApi(today), rating:finishRating }) });
+                  const updated = { ...selected, finished: true, date_end: today, rating: finishRating, review: finishReview };
+                  const res = await fetch(`/api/records/${selected.id}`, { method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ finished:true, date_end:fixDateForApi(today), rating:finishRating, review:finishReview || selected.review }) });
                   if (res.ok) {
                     const updatedRec = await res.json();
                     setSelected(updatedRec);
@@ -897,7 +922,7 @@ export default function Home() {
 
         {/* ══ CATEGORY = 통계 ═══════════════════════════════════════ */}
         {view==="category" && (
-          <div style={screenWrap}>
+          <div ref={categoryScrollRef} style={screenWrap}>
             <div style={{ padding:"20px 20px 14px" }}>
               <h2 style={{ fontSize:22, fontWeight:800, color:F.text, margin:0 }}>통계</h2>
             </div>
@@ -1006,7 +1031,7 @@ export default function Home() {
 
         {/* ══ CALENDAR ══════════════════════════════════════════════ */}
         {view==="calendar" && (
-          <div style={screenWrap}>
+          <div ref={calendarScrollRef} style={screenWrap}>
             <div style={{ padding:"20px 20px 10px", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
               <h2 style={{ fontSize:20, fontWeight:800, color:F.text, margin:0 }}>캘린더</h2>
             </div>
@@ -1067,7 +1092,7 @@ export default function Home() {
 
         {/* ══ MORE ══════════════════════════════════════════════════ */}
         {view==="more" && (
-          <div style={screenWrap}>
+          <div ref={moreScrollRef} style={screenWrap}>
             <div style={{ padding:"20px 20px 16px" }}>
               <h2 style={{ fontSize:22, fontWeight:800, color:F.text, margin:0 }}>더보기</h2>
             </div>
@@ -1129,7 +1154,7 @@ export default function Home() {
             {[{id:"home",label:"홈",emoji:"🏠"},{id:"calendar",label:"캘린더",emoji:"📅"}].map(n => (
               <button key={n.id}
                 onClick={() => {
-                  if (n.id==="home" && view==="home") { homeScrollRef.current?.scrollTo({ top:0, behavior:"smooth" }); }
+                  if (view === n.id) { scrollRefs[n.id]?.current?.scrollTo({ top:0, behavior:"smooth" }); }
                   else { navigateTo(n.id as any); }
                 }}
                 style={{ flex:1, border:"none", background:"none", cursor:"pointer", display:"flex", flexDirection:"column", alignItems:"center", gap:2, fontFamily:"inherit", padding:"4px 0", WebkitTapHighlightColor:"transparent", outline:"none" }}>
@@ -1146,7 +1171,7 @@ export default function Home() {
               </button>
             </div>
             {[{id:"category",label:"통계",emoji:"📊"},{id:"more",label:"더보기",emoji:"···"}].map(n => (
-              <button key={n.id} onClick={() => navigateTo(n.id as any)}
+              <button key={n.id} onClick={() => { if (view === n.id) { scrollRefs[n.id]?.current?.scrollTo({ top:0, behavior:"smooth" }); } else { navigateTo(n.id as any); } }}
                 style={{ flex:1, border:"none", background:"none", cursor:"pointer", display:"flex", flexDirection:"column", alignItems:"center", gap:2, fontFamily:"inherit", padding:"4px 0", WebkitTapHighlightColor:"transparent", outline:"none" }}>
                 <span style={{ fontSize:20, opacity:view===n.id?1:0.35, transition:"opacity 0.2s" }}>{n.emoji}</span>
                 <span style={{ fontSize:10, color:view===n.id?F.text:F.textMut, fontWeight:view===n.id?700:400, transition:"color 0.2s" }}>{n.label}</span>
