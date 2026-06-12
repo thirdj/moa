@@ -309,9 +309,13 @@ export default function Home() {
   const [finishRating, setFinishRating] = useState(0);
   const [finishReview, setFinishReview] = useState("");
   const homeScrollRef     = useRef<HTMLDivElement>(null);
+  // 탭별 스크롤 위치 저장 (detail/add 이탈 시 복원용)
+  const scrollPos = useRef<Record<string, number>>({});
   const calendarScrollRef  = useRef<HTMLDivElement>(null);
   const categoryScrollRef  = useRef<HTMLDivElement>(null);
   const moreScrollRef      = useRef<HTMLDivElement>(null);
+
+  // 뷰 이탈 시 스크롤 위치 저장 → 복귀 시 복원, 두 번 탭 시에만 top으로
 
   const scrollRefs: Record<string, React.RefObject<HTMLDivElement | null>> = {
     home:     homeScrollRef,
@@ -325,13 +329,29 @@ export default function Home() {
   useEffect(() => { if(status === "unauthenticated") router.push("/login"); }, [status]);
   useEffect(() => { if(status === "authenticated") fetchRecords(); }, [status]);
 
+  // 탭 뷰 진입 시 저장된 스크롤 위치 복원
+  useEffect(() => {
+    const tabViews = ["home","calendar","category","more"];
+    if (!tabViews.includes(view)) return;
+    // DOM 업데이트 후 적용되도록 requestAnimationFrame 사용
+    requestAnimationFrame(() => {
+      const ref = scrollRefs[view]?.current;
+      if (ref) ref.scrollTop = scrollPos.current[view] ?? 0;
+    });
+  }, [view]);
+
   // ── 브라우저 히스토리 연동 — 스와이프 뒤로가기 지원 ──────────────
   // view가 바뀔 때마다 히스토리에 쌓아서 스와이프/뒤로가기가 앱 내 이전 화면으로 이동
   const isPopState = useRef(false);
 
   function navigateTo(next: typeof view) {
     if (next === view) return;
-    // 히스토리에 현재 view 상태 push
+    // 탭 뷰에서 이탈할 때 스크롤 위치 저장
+    const tabViews = ["home","calendar","category","more"];
+    if (tabViews.includes(view)) {
+      const ref = scrollRefs[view]?.current;
+      if (ref) scrollPos.current[view] = ref.scrollTop;
+    }
     window.history.pushState({ view: next }, "", "");
     setView(next);
   }
@@ -1154,8 +1174,13 @@ export default function Home() {
             {[{id:"home",label:"홈",emoji:"🏠"},{id:"calendar",label:"캘린더",emoji:"📅"}].map(n => (
               <button key={n.id}
                 onClick={() => {
-                  if (view === n.id) { scrollRefs[n.id]?.current?.scrollTo({ top:0, behavior:"smooth" }); }
-                  else { navigateTo(n.id as any); }
+                  // 이미 해당 탭 뷰에 있으면(또는 그 탭에서 detail/add로 들어온 경우) 맨 위로
+                  const activeTab = ["home","calendar","category","more"].includes(view) ? view : prevView;
+                  if (activeTab === n.id && view === n.id) {
+                    scrollRefs[n.id]?.current?.scrollTo({ top:0, behavior:"smooth" });
+                  } else {
+                    navigateTo(n.id as any);
+                  }
                 }}
                 style={{ flex:1, border:"none", background:"none", cursor:"pointer", display:"flex", flexDirection:"column", alignItems:"center", gap:2, fontFamily:"inherit", padding:"4px 0", WebkitTapHighlightColor:"transparent", outline:"none" }}>
                 <span style={{ fontSize:20, opacity:view===n.id?1:0.35, transition:"opacity 0.2s" }}>{n.emoji}</span>
@@ -1171,7 +1196,14 @@ export default function Home() {
               </button>
             </div>
             {[{id:"category",label:"통계",emoji:"📊"},{id:"more",label:"더보기",emoji:"···"}].map(n => (
-              <button key={n.id} onClick={() => { if (view === n.id) { scrollRefs[n.id]?.current?.scrollTo({ top:0, behavior:"smooth" }); } else { navigateTo(n.id as any); } }}
+              <button key={n.id} onClick={() => {
+                  const activeTab = ["home","calendar","category","more"].includes(view) ? view : prevView;
+                  if (activeTab === n.id && view === n.id) {
+                    scrollRefs[n.id]?.current?.scrollTo({ top:0, behavior:"smooth" });
+                  } else {
+                    navigateTo(n.id as any);
+                  }
+                }}
                 style={{ flex:1, border:"none", background:"none", cursor:"pointer", display:"flex", flexDirection:"column", alignItems:"center", gap:2, fontFamily:"inherit", padding:"4px 0", WebkitTapHighlightColor:"transparent", outline:"none" }}>
                 <span style={{ fontSize:20, opacity:view===n.id?1:0.35, transition:"opacity 0.2s" }}>{n.emoji}</span>
                 <span style={{ fontSize:10, color:view===n.id?F.text:F.textMut, fontWeight:view===n.id?700:400, transition:"color 0.2s" }}>{n.label}</span>
