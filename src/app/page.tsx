@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { OTT_PRESET_NAMES } from "@/lib/ott-priority";
 
 // ── Types ──────────────────────────────────────────────────────────
 interface CultureRecord {
@@ -42,20 +43,8 @@ const CATS = [
 ];
 const catOf = (id: string) => CATS.find(c => c.id === id) ?? CATS[0];
 
-// ── OTT 프리셋 (수동 지정용) ──────────────────────────────────────
-// TMDB 자동 조회가 실패했을 때 사용자가 직접 고를 수 있는 목록.
-// color는 로고 이미지가 없을 때 보여줄 대체 뱃지 색상.
-// match: TMDB가 영문으로 내려주는 provider_name과 매칭하기 위한 별칭.
-const OTT_PRESETS = [
-  { name:"넷플릭스",   color:"#E50914", match:["netflix"] },
-  { name:"디즈니+",     color:"#113CCF", match:["disney"] },
-  { name:"웨이브",      color:"#1E1548", match:["wavve"] },
-  { name:"티빙",        color:"#FF0558", match:["tving"] },
-  { name:"쿠팡플레이",  color:"#1A6DFF", match:["coupang"] },
-  { name:"애플TV+",     color:"#000000", match:["apple tv"] },
-  { name:"왓챠",        color:"#FF0558", match:["watcha"] },
-  { name:"프라임비디오",color:"#00A8E1", match:["prime video", "amazon"] },
-];
+// ── OTT 프리셋 (수동 지정용) — 정의는 src/lib/ott-priority.ts에서 공유 ──
+const OTT_PRESETS = OTT_PRESET_NAMES;
 const isSameOtt = (formName: string, presetName: string) => {
   if (!formName) return false;
   if (formName === presetName) return true;
@@ -63,6 +52,26 @@ const isSameOtt = (formName: string, presetName: string) => {
   const n = formName.toLowerCase();
   return preset?.match.some(m => n.includes(m)) ?? false;
 };
+
+// 국내 OTT 8곳의 실제 TMDB 로고를 앱 전역에서 한 번만 가져와 캐싱
+function useOttLogos() {
+  const [logos, setLogos] = useState<Record<string, string | null>>({});
+  const [loaded, setLoaded] = useState(false);
+  useEffect(() => {
+    fetch("/api/tmdb/ott-list")
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (d?.providers) {
+          const map: Record<string, string | null> = {};
+          d.providers.forEach((p: any) => { map[p.name] = p.logo_path; });
+          setLogos(map);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoaded(true));
+  }, []);
+  return { logos, loaded };
+}
 
 // ── Helpers ────────────────────────────────────────────────────────
 function Stars({ v, onChange, size = 16 }: { v: number; onChange?: (n: number) => void; size?: number }) {
@@ -333,6 +342,7 @@ function OttIcon({ name, logoPath, size = 11 }: { name?: string; logoPath?: stri
 
 export default function Home() {
   const { data:session, status } = useSession();
+  const { logos: ottLogos } = useOttLogos();
   const isLoading = status === "loading";
   const router = useRouter();
   const [records, setRecords] = useState<CultureRecord[]>([]);
@@ -822,11 +832,16 @@ export default function Home() {
                   <div style={{ display:"flex", flexWrap:"wrap", gap:8, marginBottom:18 }}>
                     {OTT_PRESETS.map(p => {
                       const isSelected = isSameOtt(form.ott_name, p.name);
+                      const logoPath = ottLogos[p.name];
                       return (
                         <button key={p.name} type="button"
-                          onClick={() => setForm(f => ({ ...f, ott_name:isSelected ? "" : p.name, ott_logo_path:"" }))}
+                          onClick={() => setForm(f => ({ ...f, ott_name:isSelected ? "" : p.name, ott_logo_path:isSelected ? "" : (logoPath ?? "") }))}
                           style={{ display:"flex", alignItems:"center", gap:6, padding:"7px 12px", borderRadius:20, border:`1.5px solid ${isSelected ? p.color : F.border}`, background:isSelected ? `${p.color}12` : F.white, cursor:"pointer", fontFamily:"inherit", fontSize:12, fontWeight:600, color:isSelected ? p.color : F.textSub, transition:"all 0.15s" }}>
-                          <span style={{ width:14, height:14, borderRadius:4, background:p.color, color:"#fff", fontSize:9, fontWeight:700, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>{p.name[0]}</span>
+                          {logoPath
+                            ? <img src={`https://image.tmdb.org/t/p/original${logoPath}`} alt={p.name}
+                                style={{ width:16, height:16, borderRadius:4, objectFit:"cover", flexShrink:0 }} referrerPolicy="no-referrer" />
+                            : <span style={{ width:14, height:14, borderRadius:4, background:p.color, color:"#fff", fontSize:9, fontWeight:700, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>{p.name[0]}</span>
+                          }
                           {p.name}
                         </button>
                       );

@@ -1,17 +1,18 @@
 // src/lib/ott-priority.ts
 //
-// 국내 인지도 기준 OTT 우선순위. 숫자가 낮을수록 우선(=더 유명함).
-// TMDB의 provider_id는 서비스마다 검증이 어려워, provider_name을 정규화해서
-// 매칭하는 방식을 사용합니다. 순위를 바꾸고 싶으면 이 배열 순서만 조정하면 됩니다.
-const PRIORITY_NAMES = [
-  "netflix",
-  "disney plus",
-  "wavve",
-  "tving",
-  "coupang play",
-  "apple tv",
-  "watcha",
-  "amazon prime video",
+// 국내 인지도 기준 OTT 우선순위 + 프리셋 정의. 숫자가 낮을수록(=배열 앞쪽) 인지도 높음.
+// name: 앱에서 보여줄 한글 이름
+// color: 로고를 못 가져왔을 때 대체 뱃지 색상
+// match: TMDB provider_name(영문)과 매칭하기 위한 소문자 키워드
+export const OTT_PRESET_NAMES = [
+  { name:"넷플릭스",     color:"#E50914", match:["netflix"] },
+  { name:"디즈니+",       color:"#113CCF", match:["disney"] },
+  { name:"웨이브",        color:"#1E1548", match:["wavve"] },
+  { name:"티빙",          color:"#FF0558", match:["tving"] },
+  { name:"쿠팡플레이",    color:"#1A6DFF", match:["coupang"] },
+  { name:"애플TV+",       color:"#000000", match:["apple tv"] },
+  { name:"왓챠",          color:"#FF0558", match:["watcha"] },
+  { name:"프라임비디오",  color:"#00A8E1", match:["prime video", "amazon"] },
 ];
 
 function normalize(name: string) {
@@ -20,7 +21,7 @@ function normalize(name: string) {
 
 function priorityOf(name: string) {
   const n = normalize(name);
-  const idx = PRIORITY_NAMES.findIndex(p => n.includes(p));
+  const idx = OTT_PRESET_NAMES.findIndex(p => p.match.some(m => n.includes(m)));
   return idx === -1 ? 999 : idx;
 }
 
