@@ -47,6 +47,8 @@ export async function GET(req: Request) {
       thumbnail: item.poster_path ? `https://image.tmdb.org/t/p/w200${item.poster_path}` : null,
       publishedDate: item._date ?? "",
       description: item._type,
+      tmdbId: item.id,
+      mediaType: item._type === "영화" ? "movie" : "tv",
     }));
  
   return NextResponse.json(all);

@@ -9,11 +9,13 @@ interface CultureRecord {
   id: number; category: string; title: string; date: string;
   rating: number; review?: string; thumbnail?: string; author?: string; venue?: string;
   date_start?: string; date_end?: string; finished?: boolean;
+  media_type?: string; ott_name?: string; ott_logo_path?: string;
 }
 interface Suggestion {
   id: string | number; source: "history" | "api"; type?: "title" | "author" | "venue";
   title: string; author?: string; venue?: string; thumbnail?: string;
   publishedDate?: string; category?: string;
+  tmdbId?: number; mediaType?: "movie" | "tv";
 }
 
 // ── Design tokens — Modern Minimal ────────────────────────────────
@@ -283,7 +285,13 @@ function useAutocomplete(query: string, category: string, enabled: boolean) {
 }
 
 // ── Main ───────────────────────────────────────────────────────────
-const makeEmpty = () => ({ category:"", title:"", date:todayStr(), rating:0, review:"", thumbnail:"", author:"", venue:"", date_start:"", date_end:"", finished:false });
+const makeEmpty = () => ({ category:"", title:"", date:todayStr(), rating:0, review:"", thumbnail:"", author:"", venue:"", date_start:"", date_end:"", finished:false, media_type:"", ott_name:"", ott_logo_path:"" });
+
+// movie 카테고리 레코드의 라벨을 영화/시리즈로 분기
+function movieTypeLabel(rec: { category: string; media_type?: string }) {
+  if (rec.category !== "movie") return catOf(rec.category).label;
+  return rec.media_type === "tv" ? "시리즈" : "영화";
+}
 
 export default function Home() {
   const { data:session, status } = useSession();
@@ -447,14 +455,26 @@ export default function Home() {
   }
 
   function openEdit(r: CultureRecord) {
-    setForm({ category:r.category, title:r.title, date:safeDate(r.date), rating:r.rating, review:r.review??"", thumbnail:r.thumbnail??"", author:r.author??"", venue:r.venue??"", date_start:safeDate(r.date_start??"")||"", date_end:safeDate(r.date_end??"")||"", finished:r.finished??false });
+    setForm({ category:r.category, title:r.title, date:safeDate(r.date), rating:r.rating, review:r.review??"", thumbnail:r.thumbnail??"", author:r.author??"", venue:r.venue??"", date_start:safeDate(r.date_start??"")||"", date_end:safeDate(r.date_end??"")||"", finished:r.finished??false, media_type:r.media_type??"", ott_name:r.ott_name??"", ott_logo_path:r.ott_logo_path??"" });
     setTitleQuery(r.title); setEditId(r.id); navigateTo("add");
   }
 
   function pickSug(s: Suggestion) {
     if (s.source==="history" && s.type==="author") setForm(f => ({ ...f, author:s.title }));
     else if (s.source==="history" && s.type==="venue") setForm(f => ({ ...f, venue:s.title }));
-    else { setForm(f => ({ ...f, title:s.title, author:s.author??f.author, thumbnail:s.thumbnail??f.thumbnail, venue:s.venue??f.venue })); setTitleQuery(s.title); }
+    else {
+      setForm(f => ({ ...f, title:s.title, author:s.author??f.author, thumbnail:s.thumbnail??f.thumbnail, venue:s.venue??f.venue, media_type:s.mediaType??f.media_type, ott_name:"", ott_logo_path:"" }));
+      setTitleQuery(s.title);
+      // 영화/시리즈 선택 시 OTT 제공처 비동기 조회 (실패해도 저장에는 영향 없음)
+      if (s.source==="api" && s.mediaType && s.tmdbId) {
+        fetch(`/api/tmdb/watch-provider?type=${s.mediaType}&id=${s.tmdbId}`)
+          .then(r => r.ok ? r.json() : null)
+          .then(d => {
+            if (d?.provider) setForm(f => ({ ...f, ott_name:d.provider.name, ott_logo_path:d.provider.logo_path }));
+          })
+          .catch(() => {});
+      }
+    }
     clear(); setShowSug(false);
   }
 
@@ -579,7 +599,13 @@ export default function Home() {
                       <div>
                         {/* 카테고리 + 날짜 */}
                         <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:4 }}>
-                          <span style={{ fontSize:11, color:cat.color, fontWeight:600, letterSpacing:0.3 }}>{cat.label.toUpperCase()}</span>
+                          <span style={{ display:"flex", alignItems:"center", gap:4, fontSize:11, color:cat.color, fontWeight:600, letterSpacing:0.3, lineHeight:1 }}>
+                            {movieTypeLabel(rec).toUpperCase()}
+                            {rec.category==="movie" && rec.ott_logo_path && (
+                              <img src={`https://image.tmdb.org/t/p/original${rec.ott_logo_path}`} alt={rec.ott_name}
+                                style={{ width:11, height:11, borderRadius:3, objectFit:"cover", flexShrink:0 }} referrerPolicy="no-referrer" />
+                            )}
+                          </span>
                           <span style={{ fontSize:11, color:F.textMut }}>{formatDate(rec.date)}</span>
                         </div>
                         {/* 제목 */}
@@ -808,7 +834,13 @@ export default function Home() {
 
               {/* 카테고리 + 날짜 */}
               <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"14px 20px 6px" }}>
-                <span style={{ fontSize:11, color:cat.color, fontWeight:700, letterSpacing:0.3, background:cat.color+"12", padding:"4px 10px", borderRadius:20 }}>{cat.emoji} {cat.label}</span>
+                <span style={{ display:"inline-flex", alignItems:"center", gap:4, fontSize:11, color:cat.color, fontWeight:700, letterSpacing:0.3, background:cat.color+"12", padding:"4px 10px", borderRadius:20, lineHeight:1 }}>
+                  {cat.emoji} {movieTypeLabel(selected)}
+                  {selected.category==="movie" && selected.ott_logo_path && (
+                    <img src={`https://image.tmdb.org/t/p/original${selected.ott_logo_path}`} alt={selected.ott_name}
+                      style={{ width:11, height:11, borderRadius:3, objectFit:"cover", flexShrink:0 }} referrerPolicy="no-referrer" />
+                  )}
+                </span>
                 <span style={{ fontSize:12, color:F.textMut }}>{selected.category==="book" ? (selected.date_start ? formatDate(selected.date_start) : formatDate(selected.date)) : formatDate(selected.date)}</span>
               </div>
 

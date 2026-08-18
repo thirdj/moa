@@ -11,6 +11,7 @@ export async function getRecords(userId: string) {
   return sql`
     SELECT
       id, user_id, category, title, rating, review, thumbnail, author, venue, finished, created_at,
+      media_type, ott_name, ott_logo_path,
       date::text       AS date,
       date_start::text AS date_start,
       date_end::text   AS date_end
@@ -26,18 +27,22 @@ export async function createRecord(
     category: string; title: string; date: string; rating: number;
     review?: string; thumbnail?: string; author?: string; venue?: string;
     date_start?: string; date_end?: string; finished?: boolean;
+    media_type?: string; ott_name?: string; ott_logo_path?: string;
   }
 ) {
   const rows = await sql`
     INSERT INTO records
-      (user_id, category, title, date, rating, review, thumbnail, author, venue, date_start, date_end, finished)
+      (user_id, category, title, date, rating, review, thumbnail, author, venue, date_start, date_end, finished,
+       media_type, ott_name, ott_logo_path)
     VALUES
       (${userId}, ${data.category}, ${data.title}, ${data.date}, ${data.rating},
        ${data.review ?? null}, ${data.thumbnail ?? null}, ${data.author ?? null},
        ${data.venue ?? null}, ${data.date_start || null}, ${data.date_end || null},
-       ${data.finished ?? false})
+       ${data.finished ?? false},
+       ${data.media_type ?? null}, ${data.ott_name ?? null}, ${data.ott_logo_path ?? null})
     RETURNING
       id, user_id, category, title, rating, review, thumbnail, author, venue, finished, created_at,
+      media_type, ott_name, ott_logo_path,
       date::text       AS date,
       date_start::text AS date_start,
       date_end::text   AS date_end
@@ -52,6 +57,7 @@ export async function updateRecord(
     title?: string; date?: string; rating?: number; review?: string;
     author?: string; venue?: string; thumbnail?: string;
     date_start?: string; date_end?: string; finished?: boolean;
+    media_type?: string; ott_name?: string; ott_logo_path?: string;
   }
 ) {
   const rows = await sql`
@@ -65,10 +71,14 @@ export async function updateRecord(
       thumbnail  = COALESCE(${data.thumbnail  ?? null}, thumbnail),
       date_start = COALESCE(${data.date_start || null}::date, date_start),
       date_end   = COALESCE(${data.date_end   || null}::date, date_end),
-      finished   = ${data.finished ?? false}
+      finished   = ${data.finished ?? false},
+      media_type    = COALESCE(${data.media_type    ?? null}, media_type),
+      ott_name      = COALESCE(${data.ott_name      ?? null}, ott_name),
+      ott_logo_path = COALESCE(${data.ott_logo_path ?? null}, ott_logo_path)
     WHERE id = ${id} AND user_id = ${userId}
     RETURNING
       id, user_id, category, title, rating, review, thumbnail, author, venue, finished, created_at,
+      media_type, ott_name, ott_logo_path,
       date::text       AS date,
       date_start::text AS date_start,
       date_end::text   AS date_end
