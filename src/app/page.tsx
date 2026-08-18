@@ -42,6 +42,28 @@ const CATS = [
 ];
 const catOf = (id: string) => CATS.find(c => c.id === id) ?? CATS[0];
 
+// ── OTT 프리셋 (수동 지정용) ──────────────────────────────────────
+// TMDB 자동 조회가 실패했을 때 사용자가 직접 고를 수 있는 목록.
+// color는 로고 이미지가 없을 때 보여줄 대체 뱃지 색상.
+// match: TMDB가 영문으로 내려주는 provider_name과 매칭하기 위한 별칭.
+const OTT_PRESETS = [
+  { name:"넷플릭스",   color:"#E50914", match:["netflix"] },
+  { name:"디즈니+",     color:"#113CCF", match:["disney"] },
+  { name:"웨이브",      color:"#1E1548", match:["wavve"] },
+  { name:"티빙",        color:"#FF0558", match:["tving"] },
+  { name:"쿠팡플레이",  color:"#1A6DFF", match:["coupang"] },
+  { name:"애플TV+",     color:"#000000", match:["apple tv"] },
+  { name:"왓챠",        color:"#FF0558", match:["watcha"] },
+  { name:"프라임비디오",color:"#00A8E1", match:["prime video", "amazon"] },
+];
+const isSameOtt = (formName: string, presetName: string) => {
+  if (!formName) return false;
+  if (formName === presetName) return true;
+  const preset = OTT_PRESETS.find(p => p.name === presetName);
+  const n = formName.toLowerCase();
+  return preset?.match.some(m => n.includes(m)) ?? false;
+};
+
 // ── Helpers ────────────────────────────────────────────────────────
 function Stars({ v, onChange, size = 16 }: { v: number; onChange?: (n: number) => void; size?: number }) {
   const [hover, setHover] = useState(0);
@@ -291,6 +313,22 @@ const makeEmpty = () => ({ category:"", title:"", date:todayStr(), rating:0, rev
 function movieTypeLabel(rec: { category: string; media_type?: string }) {
   if (rec.category !== "movie") return catOf(rec.category).label;
   return rec.media_type === "tv" ? "시리즈" : "영화";
+}
+
+// 라벨 텍스트 크기(size)에 맞춰 OTT 아이콘을 그린다.
+// logo_path가 있으면 TMDB 로고 이미지, 없으면(수동 지정) 이니셜 뱃지로 대체.
+function OttIcon({ name, logoPath, size = 11 }: { name?: string; logoPath?: string; size?: number }) {
+  if (!name) return null;
+  if (logoPath) {
+    return <img src={`https://image.tmdb.org/t/p/original${logoPath}`} alt={name}
+      style={{ width:size, height:size, borderRadius:3, objectFit:"cover", flexShrink:0 }} referrerPolicy="no-referrer" />;
+  }
+  const preset = OTT_PRESETS.find(p => isSameOtt(name, p.name));
+  return (
+    <span title={name} style={{ width:size, height:size, borderRadius:3, background:preset?.color ?? "#999", color:"#fff", fontSize:size*0.6, fontWeight:700, display:"inline-flex", alignItems:"center", justifyContent:"center", flexShrink:0, lineHeight:1 }}>
+      {(preset?.name ?? name)[0]}
+    </span>
+  );
 }
 
 export default function Home() {
@@ -601,10 +639,7 @@ export default function Home() {
                         <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:4 }}>
                           <span style={{ display:"flex", alignItems:"center", gap:4, fontSize:11, color:cat.color, fontWeight:600, letterSpacing:0.3, lineHeight:1 }}>
                             {movieTypeLabel(rec).toUpperCase()}
-                            {rec.category==="movie" && rec.ott_logo_path && (
-                              <img src={`https://image.tmdb.org/t/p/original${rec.ott_logo_path}`} alt={rec.ott_name}
-                                style={{ width:11, height:11, borderRadius:3, objectFit:"cover", flexShrink:0 }} referrerPolicy="no-referrer" />
-                            )}
+                            {rec.category==="movie" && <OttIcon name={rec.ott_name} logoPath={rec.ott_logo_path} size={11} />}
                           </span>
                           <span style={{ fontSize:11, color:F.textMut }}>{formatDate(rec.date)}</span>
                         </div>
@@ -778,6 +813,31 @@ export default function Home() {
                 </>
               )}
 
+              {/* OTT — 영화 카테고리만, 자동 조회 실패 시 수동 지정 */}
+              {form.category==="movie" && (
+                <>
+                  <p style={sectionLabel}>
+                    시청한 OTT <span style={{ color:F.textMut, textTransform:"none", fontWeight:400 }}>(선택 — 자동으로 안 채워지면 직접 골라주세요)</span>
+                  </p>
+                  <div style={{ display:"flex", flexWrap:"wrap", gap:8, marginBottom:18 }}>
+                    {OTT_PRESETS.map(p => {
+                      const isSelected = isSameOtt(form.ott_name, p.name);
+                      return (
+                        <button key={p.name} type="button"
+                          onClick={() => setForm(f => ({ ...f, ott_name:isSelected ? "" : p.name, ott_logo_path:"" }))}
+                          style={{ display:"flex", alignItems:"center", gap:6, padding:"7px 12px", borderRadius:20, border:`1.5px solid ${isSelected ? p.color : F.border}`, background:isSelected ? `${p.color}12` : F.white, cursor:"pointer", fontFamily:"inherit", fontSize:12, fontWeight:600, color:isSelected ? p.color : F.textSub, transition:"all 0.15s" }}>
+                          <span style={{ width:14, height:14, borderRadius:4, background:p.color, color:"#fff", fontSize:9, fontWeight:700, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>{p.name[0]}</span>
+                          {p.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {form.ott_name && !OTT_PRESETS.some(p => isSameOtt(form.ott_name, p.name)) && (
+                    <p style={{ fontSize:11, color:F.accentColor, margin:"-12px 0 12px" }}>현재: {form.ott_name} (자동 조회됨)</p>
+                  )}
+                </>
+              )}
+
               {/* 별점 */}
               <p style={sectionLabel}>별점</p>
               <div style={{ marginBottom:18 }}>
@@ -836,10 +896,7 @@ export default function Home() {
               <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"14px 20px 6px" }}>
                 <span style={{ display:"inline-flex", alignItems:"center", gap:4, fontSize:11, color:cat.color, fontWeight:700, letterSpacing:0.3, background:cat.color+"12", padding:"4px 10px", borderRadius:20, lineHeight:1 }}>
                   {cat.emoji} {movieTypeLabel(selected)}
-                  {selected.category==="movie" && selected.ott_logo_path && (
-                    <img src={`https://image.tmdb.org/t/p/original${selected.ott_logo_path}`} alt={selected.ott_name}
-                      style={{ width:11, height:11, borderRadius:3, objectFit:"cover", flexShrink:0 }} referrerPolicy="no-referrer" />
-                  )}
+                  {selected.category==="movie" && <OttIcon name={selected.ott_name} logoPath={selected.ott_logo_path} size={11} />}
                 </span>
                 <span style={{ fontSize:12, color:F.textMut }}>{selected.category==="book" ? (selected.date_start ? formatDate(selected.date_start) : formatDate(selected.date)) : formatDate(selected.date)}</span>
               </div>
