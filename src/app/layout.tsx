@@ -6,7 +6,7 @@ import SessionProviderWrapper from "@/components/SessionProviderWrapper";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "문화생활 기록",
+  title: "ARCHIVE.LOG",
   description: "책, 영화, 전시, 공연을 기록하세요",
 };
 

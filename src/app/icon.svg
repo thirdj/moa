@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <!-- 배경: 순수 블랙 스퀘어 -->
+  <rect width="32" height="32" fill="#171717"/>
+  
+  <!-- 책 (왼쪽 세로 배치) -->
+  <!-- 외곽선: 시안에 부합하는 부드러운 라운드 처리 -->
+  <rect x="5.5" y="6.5" width="12.5" height="17.5" rx="1.5" fill="none" stroke="#FFFFFF" stroke-width="1.8" />
+  <!-- 책의 세로 spine(제본) 라인 디테일 -->
+  <line x1="8" y1="6.5" x2="8" y2="24" stroke="#FFFFFF" stroke-width="1.2" />
+
+  <!-- 티켓 (우측 하단 대각선 45도 회전 및 겹침 처리) -->
+  <!-- path data로 티켓 양끝의 반원형(circular notches) 홈과 꺾임 완벽 구현 -->
+  <g transform="translate(1, 1)">
+    <path d="M 12 18 
+             L 19.5 10.5 
+             A 1.5 1.5 0 0 0 19 9.5 
+             L 18.5 9 
+             A 1.5 1.5 0 0 0 17.5 9.5
+             L 15 12
+             L 14 11 
+             L 15.5 9.5
+             A 2 2 0 0 1 18.5 6.5
+             L 20.5 8.5
+             A 2 2 0 0 1 21.5 11.5
+             L 15.5 17.5
+             A 2 2 0 0 1 12.5 18.5
+             Z" 
+          fill="#FFFFFF" />
+    
+    <!-- 티켓 내부 디테일 (절취 점선 및 펀칭 홀을 배경 검정색으로 masking) -->
+    <!-- 절취 점선 효과 -->
+    <line x1="15.5" y1="10.5" x2="19.5" y2="14.5" stroke="#171717" stroke-dasharray="1 1.2" stroke-width="1.2" />
+    <!-- 펀칭 원형 홀 -->
+    <circle cx="18.5" cy="11.5" r="0.9" fill="#171717" />
+  </g>
+</svg>
