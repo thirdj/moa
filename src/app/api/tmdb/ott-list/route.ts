@@ -8,8 +8,6 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { OTT_PRESET_NAMES } from "@/lib/ott-priority";
 
-export const revalidate = 86400; // 로고는 자주 안 바뀌니 하루 캐시
-
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session?.user)
@@ -17,7 +15,10 @@ export async function GET() {
 
   const res = await fetch(
     `https://api.themoviedb.org/3/watch/providers/movie?watch_region=KR`,
-    { headers: { Authorization: `Bearer ${process.env.TMDB_API_KEY}` } }
+    {
+      headers: { Authorization: `Bearer ${process.env.TMDB_API_KEY}` },
+      next: { revalidate: 86400 }, // TMDB API 응답 자체를 서버 데이터 캐시에 24시간 저장
+    }
   );
   if (!res.ok) return NextResponse.json({ providers: [] });
 
@@ -30,5 +31,13 @@ export async function GET() {
     return { name: preset.name, logo_path: found?.logo_path ?? null };
   });
 
-  return NextResponse.json({ providers });
+  return NextResponse.json(
+    { providers },
+    {
+      headers: {
+        // 인증된 사용자 본인의 브라우저에서만 24시간 동안 재요청 없이 캐시 재사용
+        "Cache-Control": "private, max-age=86400, stale-while-revalidate=43200",
+      },
+    }
+  );
 }
