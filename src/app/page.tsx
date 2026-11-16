@@ -1223,7 +1223,7 @@ export default function Home() {
               <h2 style={{ fontSize:26, fontWeight:800, color:F.text, margin:0, letterSpacing:-0.5 }}>Calendar</h2>
             </div>
 
-            <div style={{ display:"flex", alignItems:"center", justifycontent:"space-between", padding:"0 20px 16px" }}>
+            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"0 20px 16px" }}>
               <button onClick={() => { if(calMonth===0){setCalYear(y=>y-1);setCalMonth(11);}else setCalMonth(m=>m-1); }} style={{ width:32, height:32, borderRadius:0, border:`1px solid ${F.border}`, background:F.white, cursor:"pointer", fontSize:16, color:F.text }}>‹</button>
               <span style={{ fontSize:14, fontWeight:800, letterSpacing:"0.08em", color:F.text }}>{calYear}. {String(calMonth+1).padStart(2,"0")}</span>
               <button
@@ -1321,7 +1321,7 @@ export default function Home() {
                 { label:"CALENDAR (캘린더 보기)",   action:()=>navigateTo("calendar") },
               ].map((item,i,arr) => (
                 <button key={item.label} onClick={item.action}
-                  style={{ width:"100%", display:"flex", alignItems:"center", justifycontent:"space-between", padding:"15px 0", background:"none", border:"none", borderBottom:i<arr.length-1?`1px solid ${F.border}`:"none", cursor:"pointer", fontFamily:"inherit", textAlign:"left" }}>
+                  style={{ width:"100%", display:"flex", alignItems:"center", justifyContent:"space-between", padding:"15px 0", background:"none", border:"none", borderBottom:i<arr.length-1?`1px solid ${F.border}`:"none", cursor:"pointer", fontFamily:"inherit", textAlign:"left" }}>
                   <span style={{ fontSize:12, fontWeight:700, letterSpacing:"0.06em", color:F.text }}>{item.label}</span>
                   <span style={{ color:F.textMut, fontSize:16 }}>›</span>
                 </button>
